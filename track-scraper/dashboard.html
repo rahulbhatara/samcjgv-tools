@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAMC Track Scraper — Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e1a 0%, #1a1e2e 50%, #0d1117 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(15, 20, 35, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(10px);
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00ff9f, #00b8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+        .badge {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .badge-off { background: rgba(100,100,100,0.3); color: #888; }
+        .badge-on { background: rgba(0,255,159,0.15); color: #00ff9f; border: 1px solid rgba(0,255,159,0.3); }
+        .badge-rec { background: rgba(255,50,50,0.2); color: #ff4444; border: 1px solid #ff4444; animation: pulse 1s infinite; }
+        .badge-ready { background: rgba(0,184,255,0.15); color: #00b8ff; border: 1px solid rgba(0,184,255,0.3); }
+
+        .cef-status { font-size: 10px; color: #555; display: flex; align-items: center; gap: 6px; }
+        .cef-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; }
+        .cef-dot.online { background: #00ff9f; box-shadow: 0 0 6px #00ff9f; }
+
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+        .main {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            height: calc(100vh - 54px);
+        }
+
+        .sidebar {
+            background: rgba(15, 20, 35, 0.9);
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .panel {
+            background: rgba(30, 35, 50, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 14px;
+        }
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: #888;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .input-group { margin-bottom: 8px; }
+        .input-group label { display: block; font-size: 10px; color: #888; margin-bottom: 3px; }
+        .input-group input {
+            width: 100%; padding: 7px 10px; border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3); color: #fff;
+            font-size: 12px; font-family: 'Inter', sans-serif;
+        }
+        .input-group input:focus { outline: none; border-color: #00b8ff; }
+
+        .btn {
+            width: 100%; padding: 9px 14px; border: none; border-radius: 7px;
+            font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700;
+            cursor: pointer; letter-spacing: 1px; transition: all 0.2s;
+            margin-bottom: 6px; text-transform: uppercase;
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+        .btn-record { background: linear-gradient(135deg, #ff4444, #cc0000); color: #fff; }
+        .btn-pit { background: linear-gradient(135deg, #ffaa00, #cc8800); color: #000; }
+        .btn-stop { background: linear-gradient(135deg, #666, #444); color: #fff; }
+        .btn-export { background: linear-gradient(135deg, #00ff9f, #00cc7a); color: #000; }
+        .btn-export-svg { background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff; }
+        .btn-clear { background: transparent; border: 1px solid rgba(255,100,100,0.3); color: #ff6666; }
+        .btn-simulate { background: linear-gradient(135deg, #3B82F6, #1E40AF); color: #fff; }
+
+        .btn-row { display: flex; gap: 6px; }
+        .btn-row .btn { margin-bottom: 0; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .stat { background: rgba(0,0,0,0.2); border-radius: 6px; padding: 6px; text-align: center; }
+        .stat-value { font-family: 'Orbitron', sans-serif; font-size: 16px; font-weight: 700; color: #00ff9f; }
+        .stat-label { font-size: 8px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-top: 1px; }
+
+        .canvas-area {
+            display: flex; align-items: center; justify-content: center;
+            position: relative; background: rgba(5, 8, 18, 0.9); overflow: hidden;
+        }
+        .canvas-overlay {
+            position: absolute; bottom: 10px; right: 12px;
+            font-size: 9px; color: #333; font-family: 'Orbitron', sans-serif;
+        }
+        .canvas-legend {
+            position: absolute; top: 12px; right: 12px;
+            display: flex; flex-direction: column; gap: 3px; font-size: 9px; color: #666;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-color { width: 12px; height: 3px; border-radius: 1px; }
+
+        .log-area {
+            max-height: 100px; overflow-y: auto; font-size: 9px;
+            font-family: monospace; color: #555; background: rgba(0,0,0,0.2);
+            border-radius: 6px; padding: 6px;
+        }
+        .log-area div { margin-bottom: 1px; }
+        .log-info { color: #00b8ff; }
+        .log-warn { color: #ffaa00; }
+        .log-ok { color: #00ff9f; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>🏁 TRACK SCRAPER</h1>
+            <span class="badge badge-off" id="statusBadge">IDLE</span>
+        </div>
+        <div class="cef-status">
+            <div class="cef-dot" id="cefDot"></div>
+            <span id="cefText">CEF: waiting</span>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="sidebar">
+            <div class="panel">
+                <div class="panel-title">Track Info</div>
+                <div class="input-group"><label>Track ID</label><input type="text" id="trackId" placeholder="e.g. zancudo_68"></div>
+                <div class="input-group"><label>Track Name</label><input type="text" id="trackName" placeholder="e.g. Zancudo 68 Grand Prix"></div>
+                <div class="input-group"><label>Total Laps</label><input type="number" id="totalLaps" placeholder="68" value="0" min="1"></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Recording</div>
+                <div class="btn-row">
+                    <button class="btn btn-record" id="btnRec" onclick="sendCmd('record_track')">🔴 TRACK</button>
+                    <button class="btn btn-pit" id="btnPit" onclick="sendCmd('record_pit')">🅿️ PIT</button>
+                </div>
+                <button class="btn btn-stop" id="btnStop" onclick="sendCmd('stop')" disabled>⏹ STOP</button>
+                <button class="btn btn-clear" onclick="clearAll()">🗑 CLEAR</button>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Statistics</div>
+                <div class="stats-grid">
+                    <div class="stat"><div class="stat-value" id="statPts">0</div><div class="stat-label">Track Pts</div></div>
+                    <div class="stat"><div class="stat-value" id="statLen">0</div><div class="stat-label">Length (m)</div></div>
+                    <div class="stat"><div class="stat-value" id="statPit">0</div><div class="stat-label">Pit Pts</div></div>
+                    <div class="stat"><div class="stat-value" id="statPos">—</div><div class="stat-label">Live XY</div></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Export</div>
+                <button class="btn btn-export" id="btnExp" onclick="exportTrackDef()" disabled>💾 EXPORT .TRACKDEF</button>
+                <button class="btn btn-export-svg" id="btnSvg" onclick="exportSVG()" disabled>📐 EXPORT SVG</button>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">🧪 Test</div>
+                <button class="btn btn-simulate" onclick="simulateOval()">SIMULATE OVAL</button>
+            </div>
+
+            <div class="log-area" id="logArea"></div>
+        </div>
+
+        <div class="canvas-area">
+            <canvas id="trackCanvas" width="900" height="750"></canvas>
+            <div class="canvas-overlay">SAMC Track Scraper v2.1</div>
+            <div class="canvas-legend">
+                <div class="legend-item"><div class="legend-color" style="background:#00ff9f;"></div>Sector 1</div>
+                <div class="legend-item"><div class="legend-color" style="background:#3B82F6;"></div>Sector 2</div>
+                <div class="legend-item"><div class="legend-color" style="background:#ffd600;"></div>Sector 3</div>
+                <div class="legend-item"><div class="legend-color" style="background:#ff6600;"></div>Pit Lane</div>
+                <div class="legend-item"><div class="legend-color" style="background:#fff;"></div>Finish</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================
+    // GTA V / RageMP Coordinate System:
+    //   X = east/west   (ground plane)
+    //   Y = north/south (ground plane)  ← used for 2D map
+    //   Z = altitude    (up/down)       ← stored but NOT used for 2D
+    // ============================================
+
+    const API = `${location.protocol}//${location.host}`;
+    const canvas = document.getElementById('trackCanvas');
+    const ctx = canvas.getContext('2d');
+    const MIN_DIST = 2.0;
+
+    // Track data uses X,Y for ground plane. Z stored as altitude only.
+    let trackPoints = [];   // [{x, y, z, dist}]  — x,y = ground, z = altitude
+    let pitPoints = [];     // [{x, y, z}]
+    let totalLength = 0, lastPoint = null;
+    let recording = false, recordingType = null;
+
+    // ============================================
+    //  COMMANDS → SERVER
+    // ============================================
+    function sendCmd(cmd) {
+        fetch(`${API}/api/command`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: cmd })
+        }).catch(() => {});
+
+        if (cmd === 'record_track') {
+            recording = true; recordingType = 'track';
+            trackPoints = []; totalLength = 0; lastPoint = null;
+            document.getElementById('btnRec').disabled = true;
+            document.getElementById('btnPit').disabled = true;
+            document.getElementById('btnStop').disabled = false;
+            setBadge('rec', '🔴 REC TRACK');
+            log('Recording TRACK — drive 1 lap in center of track', 'info');
+        } else if (cmd === 'record_pit') {
+            recording = true; recordingType = 'pit';
+            pitPoints = []; lastPoint = null;
+            document.getElementById('btnRec').disabled = true;
+            document.getElementById('btnPit').disabled = true;
+            document.getElementById('btnStop').disabled = false;
+            setBadge('rec', '🔴 REC PIT');
+            log('Recording PIT LANE — drive through pit lane', 'info');
+        } else if (cmd === 'stop') {
+            recording = false; recordingType = null;
+            document.getElementById('btnStop').disabled = true;
+            document.getElementById('btnRec').disabled = false;
+            document.getElementById('btnPit').disabled = false;
+            if (trackPoints.length > 10) {
+                log(`Track: ${trackPoints.length} pts, ${Math.round(totalLength)}m`, 'ok');
+                document.getElementById('btnExp').disabled = false;
+                document.getElementById('btnSvg').disabled = false;
+                setBadge('ready', 'READY');
+            } else if (pitPoints.length > 5) {
+                log(`Pit: ${pitPoints.length} pts`, 'ok');
+                setBadge('ready', 'READY');
+            } else {
+                setBadge('off', 'IDLE');
+            }
+            drawTrack();
+        }
+    }
+
+    function clearAll() {
+        trackPoints = []; pitPoints = []; totalLength = 0; lastPoint = null;
+        recording = false; recordingType = null;
+        document.getElementById('statPts').textContent = '0';
+        document.getElementById('statLen').textContent = '0';
+        document.getElementById('statPit').textContent = '0';
+        document.getElementById('statPos').textContent = '—';
+        document.getElementById('btnRec').disabled = false;
+        document.getElementById('btnPit').disabled = false;
+        document.getElementById('btnStop').disabled = true;
+        document.getElementById('btnExp').disabled = true;
+        document.getElementById('btnSvg').disabled = true;
+        setBadge('off', 'IDLE');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawGrid();
+        log('Cleared', 'info');
+    }
+
+    // ============================================
+    //  POLL SERVER FOR POSITIONS
+    // ============================================
+    async function pollState() {
+        try {
+            const res = await fetch(`${API}/api/state`);
+            const data = await res.json();
+
+            if (data.cef_alive) {
+                document.getElementById('cefDot').className = 'cef-dot online';
+                document.getElementById('cefText').textContent = 'CEF: connected';
+            }
+
+            if (data.positions && data.positions.length > 0) {
+                let changed = false;
+                for (const pos of data.positions) {
+                    // Server stores x, y, z from CEF. We use x, y for 2D ground plane.
+                    changed = processPoint(pos.x, pos.y, pos.z, pos.recording_type) || changed;
+                }
+                if (changed) drawTrack();
+            }
+        } catch(e) {}
+    }
+
+    function processPoint(x, y, z, recType) {
+        // Display live X,Y position (ground plane)
+        document.getElementById('statPos').textContent = `${x.toFixed(0)},${y.toFixed(0)}`;
+
+        const point = { x, y };
+
+        // Noise filter using 2D ground distance (X,Y)
+        if (lastPoint && distance2D(lastPoint, point) < MIN_DIST) return false;
+
+        if (recType === 'track') {
+            const dist = lastPoint ? totalLength + distance2D(lastPoint, point) : 0;
+            totalLength = dist;
+            trackPoints.push({ x, y, z, dist });
+            lastPoint = point;
+            document.getElementById('statPts').textContent = trackPoints.length;
+            document.getElementById('statLen').textContent = Math.round(totalLength);
+            return true;
+        } else if (recType === 'pit') {
+            pitPoints.push({ x, y, z });
+            lastPoint = point;
+            document.getElementById('statPit').textContent = pitPoints.length;
+            return true;
+        }
+        return false;
+    }
+
+    // 2D distance on ground plane (X,Y)
+    function distance2D(a, b) { return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2); }
+
+    // Poll every 200ms
+    setInterval(pollState, 200);
+
+    // ============================================
+    //  DRAWING — uses X,Y for 2D projection
+    // ============================================
+    function getBBox(pts) {
+        if (!pts.length) return { minX: 0, maxX: 1, minY: 0, maxY: 1 };
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const p of pts) {
+            if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+        }
+        const px = (maxX - minX) * 0.06 || 10, py = (maxY - minY) * 0.06 || 10;
+        return { minX: minX - px, maxX: maxX + px, minY: minY - py, maxY: maxY + py };
+    }
+
+    function toC(p, bb) {
+        const sx = (canvas.width - 40) / (bb.maxX - bb.minX);
+        const sy = (canvas.height - 40) / (bb.maxY - bb.minY);
+        const s = Math.min(sx, sy);
+        const ox = (canvas.width - (bb.maxX - bb.minX) * s) / 2;
+        const oy = (canvas.height - (bb.maxY - bb.minY) * s) / 2;
+        return { x: (p.x - bb.minX) * s + ox, y: (p.y - bb.minY) * s + oy };
+    }
+
+    function drawGrid() {
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += 50) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+        for (let i = 0; i < canvas.height; i += 50) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
+    }
+
+    function drawTrack() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawGrid();
+        const all = [...trackPoints, ...pitPoints];
+        if (all.length < 2) return;
+        const bb = getBBox(all);
+        const sc = ['#00ff9f', '#3B82F6', '#ffd600'];
+
+        if (trackPoints.length >= 2) {
+            const sl = totalLength / 3;
+            for (let i = 1; i < trackPoints.length; i++) {
+                const a = toC(trackPoints[i-1], bb), b = toC(trackPoints[i], bb);
+                const s = trackPoints[i].dist < sl ? 0 : trackPoints[i].dist < sl*2 ? 1 : 2;
+                ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+                ctx.strokeStyle = sc[s]; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+            }
+            // Finish
+            const f = toC(trackPoints[0], bb);
+            ctx.beginPath(); ctx.arc(f.x, f.y, 6, 0, Math.PI*2);
+            ctx.fillStyle = '#fff'; ctx.fill();
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.font = '10px Orbitron, sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+            ctx.fillText('FINISH', f.x, f.y - 12);
+            // Sector labels
+            for (let s = 0; s < 3; s++) {
+                const td = sl * s + sl / 2;
+                const sp = trackPoints.find(p => p.dist >= td) || trackPoints[Math.floor(trackPoints.length * (s+0.5) / 3)];
+                if (sp) { const c = toC(sp, bb); ctx.font = 'bold 11px Orbitron,sans-serif'; ctx.fillStyle = sc[s]; ctx.fillText(`S${s+1}`, c.x, c.y-10); }
+            }
+        }
+        if (pitPoints.length >= 2) {
+            ctx.beginPath(); ctx.setLineDash([6, 4]);
+            const p0 = toC(pitPoints[0], bb); ctx.moveTo(p0.x, p0.y);
+            for (let i = 1; i < pitPoints.length; i++) { const p = toC(pitPoints[i], bb); ctx.lineTo(p.x, p.y); }
+            ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+            const m = toC(pitPoints[Math.floor(pitPoints.length/2)], bb);
+            ctx.font = '10px Orbitron,sans-serif'; ctx.fillStyle = '#ff6600'; ctx.textAlign = 'center'; ctx.fillText('PIT', m.x, m.y-8);
+        }
+        if (recording && lastPoint) {
+            const lp = toC(lastPoint, bb);
+            ctx.beginPath(); ctx.arc(lp.x, lp.y, 5, 0, Math.PI*2);
+            ctx.fillStyle = recordingType === 'track' ? '#ff4444' : '#ffaa00'; ctx.fill();
+        }
+    }
+
+    // ============================================
+    //  EXPORT .trackdef — uses X,Y for ground, Z as altitude
+    // ============================================
+    function exportTrackDef() {
+        if (trackPoints.length < 10) return log('Not enough points', 'warn');
+        const tid = document.getElementById('trackId').value || 'custom_track';
+        const bb = getBBox(trackPoints);
+
+        // SVG path uses X,Y (ground plane)
+        let svg = `M ${trackPoints[0].x.toFixed(2)} ${trackPoints[0].y.toFixed(2)}`;
+        for (let i = 1; i < trackPoints.length; i++) svg += ` L ${trackPoints[i].x.toFixed(2)} ${trackPoints[i].y.toFixed(2)}`;
+        svg += ' Z';
+
+        let pitSvg = '';
+        if (pitPoints.length > 0) {
+            pitSvg = `M ${pitPoints[0].x.toFixed(2)} ${pitPoints[0].y.toFixed(2)}`;
+            for (let i = 1; i < pitPoints.length; i++) pitSvg += ` L ${pitPoints[i].x.toFixed(2)} ${pitPoints[i].y.toFixed(2)}`;
+        }
+
+        const sl = totalLength / 3;
+        const td = {
+            format_version: 1, track_id: tid,
+            track_name: document.getElementById('trackName').value || 'Custom Track',
+            total_length_m: +(totalLength.toFixed(2)), total_laps: parseInt(document.getElementById('totalLaps').value) || 0,
+            bounding_box: { min_x: +(bb.minX.toFixed(2)), max_x: +(bb.maxX.toFixed(2)), min_y: +(bb.minY.toFixed(2)), max_y: +(bb.maxY.toFixed(2)) },
+            centerline: trackPoints.map(p => ({ x: +(p.x.toFixed(2)), y: +(p.y.toFixed(2)), z: +(p.z.toFixed(2)), dist: +(p.dist.toFixed(2)) })),
+            sectors: [
+                { sector: 1, start_dist: 0, end_dist: +(sl.toFixed(2)) },
+                { sector: 2, start_dist: +(sl.toFixed(2)), end_dist: +((sl*2).toFixed(2)) },
+                { sector: 3, start_dist: +((sl*2).toFixed(2)), end_dist: +(totalLength.toFixed(2)) },
+            ],
+            pit_lane: pitPoints.map(p => ({ x: +(p.x.toFixed(2)), y: +(p.y.toFixed(2)), z: +(p.z.toFixed(2)) })),
+            finish_line: { x: +(trackPoints[0].x.toFixed(2)), y: +(trackPoints[0].y.toFixed(2)) },
+            svg_path: svg, pit_svg_path: pitSvg,
+        };
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(td, null, 2)], { type: 'application/json' }));
+        a.download = `${tid}.trackdef`; a.click();
+        log(`Exported ${tid}.trackdef`, 'ok');
+    }
+
+    function exportSVG() {
+        if (trackPoints.length < 10) return log('Not enough points', 'warn');
+        const bb = getBBox(trackPoints);
+        const w = bb.maxX - bb.minX, h = bb.maxY - bb.minY, sl = totalLength / 3;
+        const sc = ['#00ff9f', '#3B82F6', '#ffd600'];
+
+        // SVG uses X,Y ground plane coordinates
+        let s = `<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bb.minX-10} ${bb.minY-10} ${w+20} ${h+20}">\n`;
+        s += `  <rect fill="#0a0e1a" x="${bb.minX-10}" y="${bb.minY-10}" width="${w+20}" height="${h+20}"/>\n`;
+        for (let i = 0; i < 3; i++) {
+            const pts = trackPoints.filter(p => p.dist >= sl*i && p.dist <= sl*(i+1));
+            if (pts.length >= 2) {
+                let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+                for (let j = 1; j < pts.length; j++) d += ` L ${pts[j].x.toFixed(2)} ${pts[j].y.toFixed(2)}`;
+                s += `  <path d="${d}" fill="none" stroke="${sc[i]}" stroke-width="3" stroke-linecap="round"/>\n`;
+            }
+        }
+        if (pitPoints.length >= 2) {
+            let d = `M ${pitPoints[0].x.toFixed(2)} ${pitPoints[0].y.toFixed(2)}`;
+            for (let i = 1; i < pitPoints.length; i++) d += ` L ${pitPoints[i].x.toFixed(2)} ${pitPoints[i].y.toFixed(2)}`;
+            s += `  <path d="${d}" fill="none" stroke="#ff6600" stroke-width="2" stroke-dasharray="6,4"/>\n`;
+        }
+        s += `  <circle cx="${trackPoints[0].x.toFixed(2)}" cy="${trackPoints[0].y.toFixed(2)}" r="5" fill="#fff" stroke="#000" stroke-width="1.5"/>\n`;
+        s += `</svg>\n`;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([s], { type: 'image/svg+xml' }));
+        a.download = `${document.getElementById('trackId').value || 'custom_track'}.svg`; a.click();
+        log('Exported SVG', 'ok');
+    }
+
+    // ============================================
+    //  SIMULATE — generates an oval on the X,Y ground plane
+    // ============================================
+    function simulateOval() {
+        clearAll(); recording = true; recordingType = 'track';
+        setBadge('rec', '🔴 SIMULATING');
+        const cx = -500, cy = -900, rx = 120, ry = 80;
+        for (let i = 0; i <= 200; i++) {
+            const a = (i / 200) * Math.PI * 2;
+            processPoint(cx + rx * Math.cos(a), cy + ry * Math.sin(a), 25.0, 'track');
+        }
+        recording = false; recordingType = null;
+        // Pit
+        lastPoint = null;
+        for (let i = 0; i <= 30; i++) processPoint(cx - rx*0.6 + (i/30)*rx*1.2, cy + ry + 15, 25.0, 'pit');
+        drawTrack();
+        document.getElementById('trackId').value = 'simulated_oval';
+        document.getElementById('trackName').value = 'Simulated Oval';
+        document.getElementById('totalLaps').value = '30';
+        document.getElementById('btnExp').disabled = false;
+        document.getElementById('btnSvg').disabled = false;
+        setBadge('ready', 'READY');
+        log('Simulation done!', 'ok');
+    }
+
+    // ============================================
+    //  UTILS
+    // ============================================
+    function setBadge(type, text) {
+        const b = document.getElementById('statusBadge');
+        b.className = 'badge badge-' + type;
+        b.textContent = text;
+    }
+    function log(msg, lvl = 'info') {
+        const el = document.getElementById('logArea');
+        const d = document.createElement('div');
+        d.className = 'log-' + lvl;
+        d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        el.appendChild(d); el.scrollTop = el.scrollHeight;
+    }
+
+    drawGrid();
+    log('Dashboard ready. Run server.py then load /client in CEF.', 'info');
+    </script>
+</body>
+</html>

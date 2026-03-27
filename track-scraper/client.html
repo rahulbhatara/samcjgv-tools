@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SAMC Track Scraper CEF</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background: transparent;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* === CONTROL BAR (bottom-left, compact) === */
+        #control-bar {
+            position: fixed;
+            bottom: 15px;
+            left: 15px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .ctrl-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .ctrl-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .ctrl-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-record {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            color: #fff;
+        }
+
+        .btn-pit {
+            background: linear-gradient(135deg, #ffaa00, #cc8800);
+            color: #000;
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #666, #444);
+            color: #fff;
+        }
+
+        /* === STATUS INDICATOR (top-left) === */
+        #status-indicator {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+            letter-spacing: 1px;
+            z-index: 9999;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff9f;
+            box-shadow: 0 0 8px #00ff9f;
+        }
+
+        .status-dot.recording {
+            background: #ff4444;
+            box-shadow: 0 0 8px #ff4444;
+            animation: blink 0.8s infinite;
+        }
+
+        .status-text {
+            color: rgba(255, 255, 255, 0.6);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+        }
+
+        /* === LIVE INFO (top-right) === */
+        #live-info {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            text-align: right;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.4);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+        }
+
+        #live-info .value {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 700;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="status-indicator">
+        <div class="status-dot" id="statusDot"></div>
+        <span class="status-text" id="statusText">READY</span>
+    </div>
+
+    <div id="live-info">
+        <div>POS <span class="value" id="livePos">—</span></div>
+        <div>PTS <span class="value" id="livePts">0</span></div>
+    </div>
+
+    <div id="control-bar">
+        <button class="ctrl-btn btn-record" id="btnTrack" onclick="startRecord('record_track')">🔴 TRACK</button>
+        <button class="ctrl-btn btn-pit" id="btnPit" onclick="startRecord('record_pit')">🅿️ PIT</button>
+        <button class="ctrl-btn btn-stop" id="btnStop" onclick="stopRecord()" disabled>⏹ STOP</button>
+    </div>
+
+    <script>
+        // ============================================
+        //  STATE
+        // ============================================
+        const API = `${location.protocol}//${location.host}`;
+        let recording = false;
+        let recordingType = null;
+        let pointCount = 0;
+
+        // ============================================
+        //  CEF DATA RECEIVER — RaceRoom calls these
+        // ============================================
+        window.setTime = function (seconds) { /* not needed for scraper */ };
+
+        window.updateScoreboard = function (jsonStr) {
+            try {
+                const entries = JSON.parse(typeof jsonStr === 'string' ? jsonStr : JSON.stringify(jsonStr));
+                if (entries.length === 0) return;
+
+                const pos = entries[0].position;
+                document.getElementById('livePos').textContent = `${pos.x.toFixed(0)},${pos.y.toFixed(0)}`;
+
+                if (!recording) return;
+
+                // POST position to server
+                fetch(`${API}/api/position`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        x: pos.x, y: pos.y, z: pos.z,
+                        recording_type: recordingType
+                    })
+                }).catch(() => { });
+
+                pointCount++;
+                document.getElementById('livePts').textContent = pointCount;
+            } catch (e) { }
+        };
+
+        // postMessage fallback
+        window.addEventListener('message', function (e) {
+            try {
+                const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                if (d.functionName === 'setTime') window.setTime(d.arguments[0]);
+                if (d.functionName === 'updateScoreboard') window.updateScoreboard(d.arguments[0]);
+            } catch (e) { }
+        });
+
+        // ============================================
+        //  RECORDING CONTROLS
+        // ============================================
+        function startRecord(cmd) {
+            recording = true;
+            recordingType = cmd === 'record_track' ? 'track' : 'pit';
+            pointCount = 0;
+            document.getElementById('livePts').textContent = '0';
+            document.getElementById('btnTrack').disabled = true;
+            document.getElementById('btnPit').disabled = true;
+            document.getElementById('btnStop').disabled = false;
+            document.getElementById('statusDot').className = 'status-dot recording';
+            document.getElementById('statusText').textContent = recordingType === 'track' ? 'REC TRACK' : 'REC PIT';
+
+            // Notify server
+            fetch(`${API}/api/command`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: cmd })
+            }).catch(() => { });
+        }
+
+        function stopRecord() {
+            recording = false;
+            recordingType = null;
+            document.getElementById('btnTrack').disabled = false;
+            document.getElementById('btnPit').disabled = false;
+            document.getElementById('btnStop').disabled = true;
+            document.getElementById('statusDot').className = 'status-dot';
+            document.getElementById('statusText').textContent = 'READY';
+
+            fetch(`${API}/api/command`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: 'stop' })
+            }).catch(() => { });
+        }
+
+        // ============================================
+        //  POLL SERVER FOR COMMANDS (from dashboard)
+        // ============================================
+        setInterval(async () => {
+            try {
+                const res = await fetch(`${API}/api/command`);
+                const data = await res.json();
+                if (data.command === 'record_track' || data.command === 'record_pit') {
+                    startRecord(data.command);
+                } else if (data.command === 'stop') {
+                    stopRecord();
+                }
+            } catch (e) { }
+        }, 500);
+    </script>
+</body>
+
+</html>
