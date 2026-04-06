@@ -1,8 +1,8 @@
 {
   "format_version": 1,
-  "track_id": "trakc_lsn",
+  "track_id": "track_lsn",
   "track_name": "Track LSNN",
-  "total_length_m": 973.79,
+  "total_length_m": 948.23,
   "total_laps": 20,
   "bounding_box": {
     "min_x": -834.24,
@@ -468,16 +468,10 @@
       "dist": 947.03
     },
     {
-      "x": -660.32,
-      "y": -1030.18,
-      "z": 17.49,
-      "dist": 962.58
-    },
-    {
-      "x": -666.48,
-      "y": -1039.53,
-      "z": 16.86,
-      "dist": 973.79
+      "x": -650.64,
+      "y": -1017.05,
+      "z": 19.05,
+      "dist": 948.23
     }
   ],
   "sectors": [
