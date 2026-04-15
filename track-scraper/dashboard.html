@@ -45,9 +45,14 @@
         .badge-rec { background: rgba(255,50,50,0.2); color: #ff4444; border: 1px solid #ff4444; animation: pulse 1s infinite; }
         .badge-ready { background: rgba(0,184,255,0.15); color: #00b8ff; border: 1px solid rgba(0,184,255,0.3); }
 
+        .header-right { display: flex; align-items: center; gap: 16px; }
         .cef-status { font-size: 10px; color: #555; display: flex; align-items: center; gap: 6px; }
         .cef-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; }
         .cef-dot.online { background: #00ff9f; box-shadow: 0 0 6px #00ff9f; }
+        .ws-status { font-size: 10px; display: flex; align-items: center; gap: 6px; }
+        .ws-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; }
+        .ws-dot.connected { background: #00b8ff; box-shadow: 0 0 6px #00b8ff; }
+        .ws-dot.connecting { background: #ffaa00; box-shadow: 0 0 6px #ffaa00; animation: pulse 1s infinite; }
 
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 
@@ -141,6 +146,7 @@
         .log-info { color: #00b8ff; }
         .log-warn { color: #ffaa00; }
         .log-ok { color: #00ff9f; }
+        .log-err { color: #ff4444; }
     </style>
 </head>
 <body>
@@ -149,9 +155,15 @@
             <h1>🏁 TRACK SCRAPER</h1>
             <span class="badge badge-off" id="statusBadge">IDLE</span>
         </div>
-        <div class="cef-status">
-            <div class="cef-dot" id="cefDot"></div>
-            <span id="cefText">CEF: waiting</span>
+        <div class="header-right">
+            <div class="ws-status">
+                <div class="ws-dot" id="wsDot"></div>
+                <span id="wsText" style="color:#555">WS: connecting</span>
+            </div>
+            <div class="cef-status">
+                <div class="cef-dot" id="cefDot"></div>
+                <span id="cefText">CEF: waiting</span>
+            </div>
         </div>
     </div>
 
@@ -159,9 +171,9 @@
         <div class="sidebar">
             <div class="panel">
                 <div class="panel-title">Track Info</div>
-                <div class="input-group"><label>Track ID</label><input type="text" id="trackId" placeholder="e.g. zancudo_68"></div>
-                <div class="input-group"><label>Track Name</label><input type="text" id="trackName" placeholder="e.g. Zancudo 68 Grand Prix"></div>
-                <div class="input-group"><label>Total Laps</label><input type="number" id="totalLaps" placeholder="68" value="0" min="1"></div>
+                <div class="input-group"><label>Track ID</label><input type="text" id="trackId" placeholder="e.g. zancudo_68" oninput="syncTrackInfo()"></div>
+                <div class="input-group"><label>Track Name</label><input type="text" id="trackName" placeholder="e.g. Zancudo 68 Grand Prix" oninput="syncTrackInfo()"></div>
+                <div class="input-group"><label>Total Laps</label><input type="number" id="totalLaps" placeholder="68" value="0" min="1" oninput="syncTrackInfo()"></div>
             </div>
 
             <div class="panel">
@@ -171,7 +183,7 @@
                     <button class="btn btn-pit" id="btnPit" onclick="sendCmd('record_pit')">🅿️ PIT</button>
                 </div>
                 <button class="btn btn-stop" id="btnStop" onclick="sendCmd('stop')" disabled>⏹ STOP</button>
-                <button class="btn btn-clear" onclick="clearAll()">🗑 CLEAR</button>
+                <button class="btn btn-clear" onclick="sendCmd('clear')">🗑 CLEAR</button>
             </div>
 
             <div class="panel">
@@ -186,8 +198,8 @@
 
             <div class="panel">
                 <div class="panel-title">Export</div>
-                <button class="btn btn-export" id="btnExp" onclick="exportTrackDef()" disabled>💾 EXPORT .TRACKDEF</button>
-                <button class="btn btn-export-svg" id="btnSvg" onclick="exportSVG()" disabled>📐 EXPORT SVG</button>
+                <button class="btn btn-export" id="btnExp" onclick="requestExport()" disabled>💾 EXPORT .TRACKDEF</button>
+                <button class="btn btn-export-svg" id="btnSvg" onclick="requestSvgExport()" disabled>📐 EXPORT SVG</button>
             </div>
 
             <div class="panel">
@@ -200,7 +212,7 @@
 
         <div class="canvas-area">
             <canvas id="trackCanvas" width="900" height="750"></canvas>
-            <div class="canvas-overlay">SAMC Track Scraper v2.1</div>
+            <div class="canvas-overlay">SAMC Track Scraper v3.0 — WebSocket</div>
             <div class="canvas-legend">
                 <div class="legend-item"><div class="legend-color" style="background:#00ff9f;"></div>Sector 1</div>
                 <div class="legend-item"><div class="legend-color" style="background:#3B82F6;"></div>Sector 2</div>
@@ -219,136 +231,362 @@
     //   Z = altitude    (up/down)       ← stored but NOT used for 2D
     // ============================================
 
-    const API = `${location.protocol}//${location.host}`;
+    const WS_PORT = location.port === '8899' ? 8900 : (parseInt(location.port) + 1);
+    const WS_URL = `ws://${location.hostname}:${WS_PORT}`;
     const canvas = document.getElementById('trackCanvas');
     const ctx = canvas.getContext('2d');
-    const MIN_DIST = 2.0;
 
-    // Track data uses X,Y for ground plane. Z stored as altitude only.
-    let trackPoints = [];   // [{x, y, z, dist}]  — x,y = ground, z = altitude
-    let pitPoints = [];     // [{x, y, z}]
-    let totalLength = 0, lastPoint = null;
-    let recording = false, recordingType = null;
+    // Track data — synced from server
+    let trackPoints = [];
+    let pitPoints = [];
+    let totalLength = 0;
+    let recording = false;
+    let recordingType = null;
+    let lastLivePoint = null;
+
+    // ============================================
+    //  WEBSOCKET CONNECTION
+    // ============================================
+    let ws = null;
+    let reconnectTimer = null;
+
+    function connectWS() {
+        if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+
+        log('Connecting to server...', 'info');
+        setWsStatus('connecting');
+        
+        ws = new WebSocket(WS_URL);
+
+        ws.onopen = () => {
+            setWsStatus('connected');
+            log('WebSocket connected', 'ok');
+            // Register as dashboard
+            ws.send(JSON.stringify({ type: 'register', role: 'dashboard' }));
+            // Sync track info
+            syncTrackInfo();
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                handleMessage(msg);
+            } catch (e) { }
+        };
+
+        ws.onclose = () => {
+            setWsStatus('disconnected');
+            log('WebSocket disconnected — reconnecting...', 'warn');
+            scheduleReconnect();
+        };
+
+        ws.onerror = () => {
+            setWsStatus('disconnected');
+        };
+    }
+
+    function scheduleReconnect() {
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connectWS, 2000);
+    }
+
+    function setWsStatus(status) {
+        const dot = document.getElementById('wsDot');
+        const text = document.getElementById('wsText');
+        if (status === 'connected') {
+            dot.className = 'ws-dot connected';
+            text.textContent = 'WS: connected';
+            text.style.color = '#00b8ff';
+        } else if (status === 'connecting') {
+            dot.className = 'ws-dot connecting';
+            text.textContent = 'WS: connecting';
+            text.style.color = '#ffaa00';
+        } else {
+            dot.className = 'ws-dot';
+            text.textContent = 'WS: disconnected';
+            text.style.color = '#555';
+        }
+    }
+
+    function wsSend(msg) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(msg));
+        }
+    }
+
+    // ============================================
+    //  MESSAGE HANDLER — Process server messages
+    // ============================================
+    function handleMessage(msg) {
+        switch (msg.type) {
+            case 'full_state':
+                // Full state sync on connect
+                trackPoints = msg.track_points || [];
+                pitPoints = msg.pit_points || [];
+                totalLength = msg.total_length || 0;
+                recording = msg.recording;
+                recordingType = msg.recording_type;
+
+                // Update track info fields
+                if (msg.track_info) {
+                    document.getElementById('trackId').value = msg.track_info.track_id || '';
+                    document.getElementById('trackName').value = msg.track_info.track_name || '';
+                    document.getElementById('totalLaps').value = msg.track_info.total_laps || 0;
+                }
+
+                // Update UI
+                updateStats();
+                updateButtons();
+                updateCefStatus(msg.cef_alive);
+                drawTrack();
+                log(`State synced — ${trackPoints.length} track pts, ${pitPoints.length} pit pts`, 'ok');
+                break;
+
+            case 'track_point':
+                trackPoints.push(msg.point);
+                totalLength = msg.total_length;
+                updateStats();
+                updateExportButtons();
+                drawTrack();
+                break;
+
+            case 'pit_point':
+                pitPoints.push(msg.point);
+                updateStats();
+                drawTrack();
+                break;
+
+            case 'live_position':
+                lastLivePoint = { x: msg.x, y: msg.y };
+                document.getElementById('statPos').textContent = `${msg.x.toFixed(0)},${msg.y.toFixed(0)}`;
+                break;
+
+            case 'state_change':
+                recording = msg.recording;
+                recordingType = msg.recording_type;
+                
+                if (msg.command === 'record_track') {
+                    trackPoints = []; totalLength = 0;
+                    setBadge('rec', '🔴 REC TRACK');
+                    log('Recording TRACK — drive 1 lap in center of track', 'info');
+                } else if (msg.command === 'record_pit') {
+                    pitPoints = [];
+                    setBadge('rec', '🔴 REC PIT');
+                    log('Recording PIT LANE — drive through pit lane', 'info');
+                } else if (msg.command === 'stop') {
+                    if (msg.track_count > 10) {
+                        log(`Track: ${msg.track_count} pts, ${Math.round(msg.total_length)}m`, 'ok');
+                        setBadge('ready', 'READY');
+                    } else if (msg.pit_count > 5) {
+                        log(`Pit: ${msg.pit_count} pts`, 'ok');
+                        setBadge('ready', 'READY');
+                    } else {
+                        setBadge('off', 'IDLE');
+                    }
+                } else if (msg.command === 'clear') {
+                    trackPoints = []; pitPoints = []; totalLength = 0;
+                    setBadge('off', 'IDLE');
+                    log('Cleared', 'info');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawGrid();
+                }
+                
+                updateStats();
+                updateButtons();
+                drawTrack();
+                break;
+
+            case 'cef_status':
+                updateCefStatus(msg.alive);
+                break;
+
+            case 'export_trackdef':
+                downloadJSON(msg.trackdef, msg.filename);
+                log(`Exported ${msg.filename}`, 'ok');
+                break;
+
+            case 'export_svg_data':
+                generateSVG(msg.track_points, msg.pit_points, msg.total_length, msg.track_id);
+                break;
+
+            case 'export_error':
+                log(`Export error: ${msg.error}`, 'warn');
+                break;
+        }
+    }
 
     // ============================================
     //  COMMANDS → SERVER
     // ============================================
     function sendCmd(cmd) {
-        fetch(`${API}/api/command`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: cmd })
-        }).catch(() => {});
+        wsSend({ type: 'command', command: cmd });
+    }
 
-        if (cmd === 'record_track') {
-            recording = true; recordingType = 'track';
-            trackPoints = []; totalLength = 0; lastPoint = null;
-            document.getElementById('btnRec').disabled = true;
-            document.getElementById('btnPit').disabled = true;
-            document.getElementById('btnStop').disabled = false;
-            setBadge('rec', '🔴 REC TRACK');
-            log('Recording TRACK — drive 1 lap in center of track', 'info');
-        } else if (cmd === 'record_pit') {
-            recording = true; recordingType = 'pit';
-            pitPoints = []; lastPoint = null;
-            document.getElementById('btnRec').disabled = true;
-            document.getElementById('btnPit').disabled = true;
-            document.getElementById('btnStop').disabled = false;
-            setBadge('rec', '🔴 REC PIT');
-            log('Recording PIT LANE — drive through pit lane', 'info');
-        } else if (cmd === 'stop') {
-            recording = false; recordingType = null;
-            document.getElementById('btnStop').disabled = true;
-            document.getElementById('btnRec').disabled = false;
-            document.getElementById('btnPit').disabled = false;
-            if (trackPoints.length > 10) {
-                log(`Track: ${trackPoints.length} pts, ${Math.round(totalLength)}m`, 'ok');
-                document.getElementById('btnExp').disabled = false;
-                document.getElementById('btnSvg').disabled = false;
-                setBadge('ready', 'READY');
-            } else if (pitPoints.length > 5) {
-                log(`Pit: ${pitPoints.length} pts`, 'ok');
-                setBadge('ready', 'READY');
-            } else {
-                setBadge('off', 'IDLE');
+    function syncTrackInfo() {
+        wsSend({
+            type: 'track_info',
+            info: {
+                track_id: document.getElementById('trackId').value || 'custom_track',
+                track_name: document.getElementById('trackName').value || 'Custom Track',
+                total_laps: parseInt(document.getElementById('totalLaps').value) || 0,
             }
-            drawTrack();
+        });
+    }
+
+    function requestExport() {
+        wsSend({ type: 'export_request' });
+    }
+
+    function requestSvgExport() {
+        wsSend({ type: 'export_svg_request' });
+    }
+
+    // ============================================
+    //  UI UPDATES
+    // ============================================
+    function updateStats() {
+        document.getElementById('statPts').textContent = trackPoints.length;
+        document.getElementById('statLen').textContent = Math.round(totalLength);
+        document.getElementById('statPit').textContent = pitPoints.length;
+    }
+
+    function updateButtons() {
+        document.getElementById('btnRec').disabled = recording;
+        document.getElementById('btnPit').disabled = recording;
+        document.getElementById('btnStop').disabled = !recording;
+        updateExportButtons();
+    }
+
+    function updateExportButtons() {
+        const hasData = trackPoints.length > 10;
+        document.getElementById('btnExp').disabled = !hasData;
+        document.getElementById('btnSvg').disabled = !hasData;
+    }
+
+    function updateCefStatus(alive) {
+        const dot = document.getElementById('cefDot');
+        const text = document.getElementById('cefText');
+        dot.className = alive ? 'cef-dot online' : 'cef-dot';
+        text.textContent = alive ? 'CEF: connected' : 'CEF: waiting';
+    }
+
+    // ============================================
+    //  EXPORT HELPERS
+    // ============================================
+    function downloadJSON(data, filename) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+        a.download = filename;
+        a.click();
+    }
+
+    function generateSVG(tp, pp, tl, trackId) {
+        if (tp.length < 10) return log('Not enough points', 'warn');
+        const bb = getBBox(tp);
+        const w = bb.maxX - bb.minX, h = bb.maxY - bb.minY, sl = tl / 3;
+        const sc = ['#00ff9f', '#3B82F6', '#ffd600'];
+
+        // SVG uses X,Y ground plane coordinates
+        let s = `<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bb.minX-10} ${bb.minY-10} ${w+20} ${h+20}">\n`;
+        s += `  <rect fill="#0a0e1a" x="${bb.minX-10}" y="${bb.minY-10}" width="${w+20}" height="${h+20}"/>\n`;
+        for (let i = 0; i < 3; i++) {
+            const pts = tp.filter(p => p.dist >= sl*i && p.dist <= sl*(i+1));
+            if (pts.length >= 2) {
+                let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+                for (let j = 1; j < pts.length; j++) d += ` L ${pts[j].x.toFixed(2)} ${pts[j].y.toFixed(2)}`;
+                s += `  <path d="${d}" fill="none" stroke="${sc[i]}" stroke-width="3" stroke-linecap="round"/>\n`;
+            }
         }
-    }
-
-    function clearAll() {
-        trackPoints = []; pitPoints = []; totalLength = 0; lastPoint = null;
-        recording = false; recordingType = null;
-        document.getElementById('statPts').textContent = '0';
-        document.getElementById('statLen').textContent = '0';
-        document.getElementById('statPit').textContent = '0';
-        document.getElementById('statPos').textContent = '—';
-        document.getElementById('btnRec').disabled = false;
-        document.getElementById('btnPit').disabled = false;
-        document.getElementById('btnStop').disabled = true;
-        document.getElementById('btnExp').disabled = true;
-        document.getElementById('btnSvg').disabled = true;
-        setBadge('off', 'IDLE');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawGrid();
-        log('Cleared', 'info');
+        if (pp.length >= 2) {
+            let d = `M ${pp[0].x.toFixed(2)} ${pp[0].y.toFixed(2)}`;
+            for (let i = 1; i < pp.length; i++) d += ` L ${pp[i].x.toFixed(2)} ${pp[i].y.toFixed(2)}`;
+            s += `  <path d="${d}" fill="none" stroke="#ff6600" stroke-width="2" stroke-dasharray="6,4"/>\n`;
+        }
+        s += `  <circle cx="${tp[0].x.toFixed(2)}" cy="${tp[0].y.toFixed(2)}" r="5" fill="#fff" stroke="#000" stroke-width="1.5"/>\n`;
+        s += `</svg>\n`;
+        
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([s], { type: 'image/svg+xml' }));
+        a.download = `${trackId || 'custom_track'}.svg`;
+        a.click();
+        log('Exported SVG', 'ok');
     }
 
     // ============================================
-    //  POLL SERVER FOR POSITIONS
+    //  SIMULATE — generates an oval on the X,Y ground plane
     // ============================================
-    async function pollState() {
-        try {
-            const res = await fetch(`${API}/api/state`);
-            const data = await res.json();
+    function simulateOval() {
+        // First clear via server
+        sendCmd('clear');
 
-            if (data.cef_alive) {
-                document.getElementById('cefDot').className = 'cef-dot online';
-                document.getElementById('cefText').textContent = 'CEF: connected';
+        // Wait a moment then send simulated data
+        setTimeout(() => {
+            sendCmd('record_track');
+            
+            const cx = -500, cy = -900, rx = 120, ry = 80;
+            let simPoints = [];
+            for (let i = 0; i <= 200; i++) {
+                const a = (i / 200) * Math.PI * 2;
+                simPoints.push({
+                    x: cx + rx * Math.cos(a),
+                    y: cy + ry * Math.sin(a),
+                    z: 25.0,
+                    recording_type: 'track',
+                });
             }
 
-            if (data.positions && data.positions.length > 0) {
-                let changed = false;
-                for (const pos of data.positions) {
-                    // Server stores x, y, z from CEF. We use x, y for 2D ground plane.
-                    changed = processPoint(pos.x, pos.y, pos.z, pos.recording_type) || changed;
+            // Send points with small delays to simulate movement
+            let idx = 0;
+            const sendNext = () => {
+                if (idx >= simPoints.length) {
+                    // Done track - send pit
+                    setTimeout(() => {
+                        sendCmd('stop');
+                        setTimeout(() => {
+                            sendCmd('record_pit');
+                            setTimeout(() => {
+                                for (let i = 0; i <= 30; i++) {
+                                    wsSend({
+                                        type: 'position',
+                                        x: cx - rx*0.6 + (i/30)*rx*1.2,
+                                        y: cy + ry + 15,
+                                        z: 25.0,
+                                        recording_type: 'pit',
+                                    });
+                                }
+                                setTimeout(() => {
+                                    sendCmd('stop');
+                                    // Set track info
+                                    document.getElementById('trackId').value = 'simulated_oval';
+                                    document.getElementById('trackName').value = 'Simulated Oval';
+                                    document.getElementById('totalLaps').value = '30';
+                                    syncTrackInfo();
+                                    log('Simulation done!', 'ok');
+                                }, 200);
+                            }, 200);
+                        }, 200);
+                    }, 100);
+                    return;
                 }
-                if (changed) drawTrack();
-            }
-        } catch(e) {}
+                
+                const p = simPoints[idx];
+                wsSend({
+                    type: 'position',
+                    x: p.x, y: p.y, z: p.z,
+                    recording_type: p.recording_type,
+                });
+                idx++;
+                // Send in batches
+                if (idx % 10 === 0) {
+                    setTimeout(sendNext, 10);
+                } else {
+                    sendNext();
+                }
+            };
+            
+            setTimeout(sendNext, 200);
+        }, 300);
     }
-
-    function processPoint(x, y, z, recType) {
-        // Display live X,Y position (ground plane)
-        document.getElementById('statPos').textContent = `${x.toFixed(0)},${y.toFixed(0)}`;
-
-        const point = { x, y };
-
-        // Noise filter using 2D ground distance (X,Y)
-        if (lastPoint && distance2D(lastPoint, point) < MIN_DIST) return false;
-
-        if (recType === 'track') {
-            const dist = lastPoint ? totalLength + distance2D(lastPoint, point) : 0;
-            totalLength = dist;
-            trackPoints.push({ x, y, z, dist });
-            lastPoint = point;
-            document.getElementById('statPts').textContent = trackPoints.length;
-            document.getElementById('statLen').textContent = Math.round(totalLength);
-            return true;
-        } else if (recType === 'pit') {
-            pitPoints.push({ x, y, z });
-            lastPoint = point;
-            document.getElementById('statPit').textContent = pitPoints.length;
-            return true;
-        }
-        return false;
-    }
-
-    // 2D distance on ground plane (X,Y)
-    function distance2D(a, b) { return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2); }
-
-    // Poll every 200ms
-    setInterval(pollState, 200);
 
     // ============================================
     //  DRAWING — uses X,Y for 2D projection
@@ -417,107 +655,11 @@
             const m = toC(pitPoints[Math.floor(pitPoints.length/2)], bb);
             ctx.font = '10px Orbitron,sans-serif'; ctx.fillStyle = '#ff6600'; ctx.textAlign = 'center'; ctx.fillText('PIT', m.x, m.y-8);
         }
-        if (recording && lastPoint) {
-            const lp = toC(lastPoint, bb);
+        if (recording && lastLivePoint) {
+            const lp = toC(lastLivePoint, bb);
             ctx.beginPath(); ctx.arc(lp.x, lp.y, 5, 0, Math.PI*2);
             ctx.fillStyle = recordingType === 'track' ? '#ff4444' : '#ffaa00'; ctx.fill();
         }
-    }
-
-    // ============================================
-    //  EXPORT .trackdef — uses X,Y for ground, Z as altitude
-    // ============================================
-    function exportTrackDef() {
-        if (trackPoints.length < 10) return log('Not enough points', 'warn');
-        const tid = document.getElementById('trackId').value || 'custom_track';
-        const bb = getBBox(trackPoints);
-
-        // SVG path uses X,Y (ground plane)
-        let svg = `M ${trackPoints[0].x.toFixed(2)} ${trackPoints[0].y.toFixed(2)}`;
-        for (let i = 1; i < trackPoints.length; i++) svg += ` L ${trackPoints[i].x.toFixed(2)} ${trackPoints[i].y.toFixed(2)}`;
-        svg += ' Z';
-
-        let pitSvg = '';
-        if (pitPoints.length > 0) {
-            pitSvg = `M ${pitPoints[0].x.toFixed(2)} ${pitPoints[0].y.toFixed(2)}`;
-            for (let i = 1; i < pitPoints.length; i++) pitSvg += ` L ${pitPoints[i].x.toFixed(2)} ${pitPoints[i].y.toFixed(2)}`;
-        }
-
-        const sl = totalLength / 3;
-        const td = {
-            format_version: 1, track_id: tid,
-            track_name: document.getElementById('trackName').value || 'Custom Track',
-            total_length_m: +(totalLength.toFixed(2)), total_laps: parseInt(document.getElementById('totalLaps').value) || 0,
-            bounding_box: { min_x: +(bb.minX.toFixed(2)), max_x: +(bb.maxX.toFixed(2)), min_y: +(bb.minY.toFixed(2)), max_y: +(bb.maxY.toFixed(2)) },
-            centerline: trackPoints.map(p => ({ x: +(p.x.toFixed(2)), y: +(p.y.toFixed(2)), z: +(p.z.toFixed(2)), dist: +(p.dist.toFixed(2)) })),
-            sectors: [
-                { sector: 1, start_dist: 0, end_dist: +(sl.toFixed(2)) },
-                { sector: 2, start_dist: +(sl.toFixed(2)), end_dist: +((sl*2).toFixed(2)) },
-                { sector: 3, start_dist: +((sl*2).toFixed(2)), end_dist: +(totalLength.toFixed(2)) },
-            ],
-            pit_lane: pitPoints.map(p => ({ x: +(p.x.toFixed(2)), y: +(p.y.toFixed(2)), z: +(p.z.toFixed(2)) })),
-            finish_line: { x: +(trackPoints[0].x.toFixed(2)), y: +(trackPoints[0].y.toFixed(2)) },
-            svg_path: svg, pit_svg_path: pitSvg,
-        };
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([JSON.stringify(td, null, 2)], { type: 'application/json' }));
-        a.download = `${tid}.trackdef`; a.click();
-        log(`Exported ${tid}.trackdef`, 'ok');
-    }
-
-    function exportSVG() {
-        if (trackPoints.length < 10) return log('Not enough points', 'warn');
-        const bb = getBBox(trackPoints);
-        const w = bb.maxX - bb.minX, h = bb.maxY - bb.minY, sl = totalLength / 3;
-        const sc = ['#00ff9f', '#3B82F6', '#ffd600'];
-
-        // SVG uses X,Y ground plane coordinates
-        let s = `<?xml version="1.0"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bb.minX-10} ${bb.minY-10} ${w+20} ${h+20}">\n`;
-        s += `  <rect fill="#0a0e1a" x="${bb.minX-10}" y="${bb.minY-10}" width="${w+20}" height="${h+20}"/>\n`;
-        for (let i = 0; i < 3; i++) {
-            const pts = trackPoints.filter(p => p.dist >= sl*i && p.dist <= sl*(i+1));
-            if (pts.length >= 2) {
-                let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-                for (let j = 1; j < pts.length; j++) d += ` L ${pts[j].x.toFixed(2)} ${pts[j].y.toFixed(2)}`;
-                s += `  <path d="${d}" fill="none" stroke="${sc[i]}" stroke-width="3" stroke-linecap="round"/>\n`;
-            }
-        }
-        if (pitPoints.length >= 2) {
-            let d = `M ${pitPoints[0].x.toFixed(2)} ${pitPoints[0].y.toFixed(2)}`;
-            for (let i = 1; i < pitPoints.length; i++) d += ` L ${pitPoints[i].x.toFixed(2)} ${pitPoints[i].y.toFixed(2)}`;
-            s += `  <path d="${d}" fill="none" stroke="#ff6600" stroke-width="2" stroke-dasharray="6,4"/>\n`;
-        }
-        s += `  <circle cx="${trackPoints[0].x.toFixed(2)}" cy="${trackPoints[0].y.toFixed(2)}" r="5" fill="#fff" stroke="#000" stroke-width="1.5"/>\n`;
-        s += `</svg>\n`;
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([s], { type: 'image/svg+xml' }));
-        a.download = `${document.getElementById('trackId').value || 'custom_track'}.svg`; a.click();
-        log('Exported SVG', 'ok');
-    }
-
-    // ============================================
-    //  SIMULATE — generates an oval on the X,Y ground plane
-    // ============================================
-    function simulateOval() {
-        clearAll(); recording = true; recordingType = 'track';
-        setBadge('rec', '🔴 SIMULATING');
-        const cx = -500, cy = -900, rx = 120, ry = 80;
-        for (let i = 0; i <= 200; i++) {
-            const a = (i / 200) * Math.PI * 2;
-            processPoint(cx + rx * Math.cos(a), cy + ry * Math.sin(a), 25.0, 'track');
-        }
-        recording = false; recordingType = null;
-        // Pit
-        lastPoint = null;
-        for (let i = 0; i <= 30; i++) processPoint(cx - rx*0.6 + (i/30)*rx*1.2, cy + ry + 15, 25.0, 'pit');
-        drawTrack();
-        document.getElementById('trackId').value = 'simulated_oval';
-        document.getElementById('trackName').value = 'Simulated Oval';
-        document.getElementById('totalLaps').value = '30';
-        document.getElementById('btnExp').disabled = false;
-        document.getElementById('btnSvg').disabled = false;
-        setBadge('ready', 'READY');
-        log('Simulation done!', 'ok');
     }
 
     // ============================================
@@ -536,8 +678,12 @@
         el.appendChild(d); el.scrollTop = el.scrollHeight;
     }
 
+    // ============================================
+    //  INIT
+    // ============================================
     drawGrid();
-    log('Dashboard ready. Run server.py then load /client in CEF.', 'info');
+    log('Dashboard ready — connecting via WebSocket...', 'info');
+    connectWS();
     </script>
 </body>
 </html>

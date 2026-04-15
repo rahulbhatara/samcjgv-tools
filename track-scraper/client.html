@@ -96,6 +96,11 @@
             animation: blink 0.8s infinite;
         }
 
+        .status-dot.disconnected {
+            background: #555;
+            box-shadow: none;
+        }
+
         .status-text {
             color: rgba(255, 255, 255, 0.6);
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
@@ -135,8 +140,8 @@
 
 <body>
     <div id="status-indicator">
-        <div class="status-dot" id="statusDot"></div>
-        <span class="status-text" id="statusText">READY</span>
+        <div class="status-dot disconnected" id="statusDot"></div>
+        <span class="status-text" id="statusText">CONNECTING</span>
     </div>
 
     <div id="live-info">
@@ -154,10 +159,87 @@
         // ============================================
         //  STATE
         // ============================================
-        const API = `${location.protocol}//${location.host}`;
+        const WS_PORT = location.port === '8899' ? 8900 : (parseInt(location.port) + 1);
+        const WS_URL = `ws://${location.hostname}:${WS_PORT}`;
         let recording = false;
         let recordingType = null;
         let pointCount = 0;
+        let ws = null;
+        let reconnectTimer = null;
+
+        // ============================================
+        //  WEBSOCKET CONNECTION
+        // ============================================
+        function connectWS() {
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+
+            ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                document.getElementById('statusDot').className = 'status-dot';
+                document.getElementById('statusText').textContent = 'READY';
+                // Register as CEF client
+                ws.send(JSON.stringify({ type: 'register', role: 'cef' }));
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    handleServerMessage(msg);
+                } catch (e) { }
+            };
+
+            ws.onclose = () => {
+                document.getElementById('statusDot').className = 'status-dot disconnected';
+                document.getElementById('statusText').textContent = 'DISCONNECTED';
+                scheduleReconnect();
+            };
+
+            ws.onerror = () => { };
+        }
+
+        function scheduleReconnect() {
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+            reconnectTimer = setTimeout(connectWS, 2000);
+        }
+
+        function wsSend(msg) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(msg));
+            }
+        }
+
+        // ============================================
+        //  HANDLE COMMANDS FROM SERVER (sent by dashboard)
+        // ============================================
+        function handleServerMessage(msg) {
+            if (msg.type === 'state_change') {
+                const cmd = msg.command;
+                if (cmd === 'record_track' || cmd === 'record_pit') {
+                    recording = true;
+                    recordingType = cmd === 'record_track' ? 'track' : 'pit';
+                    pointCount = 0;
+                    document.getElementById('livePts').textContent = '0';
+                    document.getElementById('btnTrack').disabled = true;
+                    document.getElementById('btnPit').disabled = true;
+                    document.getElementById('btnStop').disabled = false;
+                    document.getElementById('statusDot').className = 'status-dot recording';
+                    document.getElementById('statusText').textContent = recordingType === 'track' ? 'REC TRACK' : 'REC PIT';
+                } else if (cmd === 'stop' || cmd === 'clear') {
+                    recording = false;
+                    recordingType = null;
+                    document.getElementById('btnTrack').disabled = false;
+                    document.getElementById('btnPit').disabled = false;
+                    document.getElementById('btnStop').disabled = true;
+                    document.getElementById('statusDot').className = 'status-dot';
+                    document.getElementById('statusText').textContent = 'READY';
+                    if (cmd === 'clear') {
+                        pointCount = 0;
+                        document.getElementById('livePts').textContent = '0';
+                    }
+                }
+            }
+        }
 
         // ============================================
         //  CEF DATA RECEIVER — RaceRoom calls these
@@ -174,15 +256,14 @@
 
                 if (!recording) return;
 
-                // POST position to server
-                fetch(`${API}/api/position`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        x: pos.x, y: pos.y, z: pos.z,
-                        recording_type: recordingType
-                    })
-                }).catch(() => { });
+                // Send position via WebSocket
+                wsSend({
+                    type: 'position',
+                    x: pos.x,
+                    y: pos.y,
+                    z: pos.z,
+                    recording_type: recordingType,
+                });
 
                 pointCount++;
                 document.getElementById('livePts').textContent = pointCount;
@@ -199,7 +280,7 @@
         });
 
         // ============================================
-        //  RECORDING CONTROLS
+        //  RECORDING CONTROLS (local buttons)
         // ============================================
         function startRecord(cmd) {
             recording = true;
@@ -212,12 +293,8 @@
             document.getElementById('statusDot').className = 'status-dot recording';
             document.getElementById('statusText').textContent = recordingType === 'track' ? 'REC TRACK' : 'REC PIT';
 
-            // Notify server
-            fetch(`${API}/api/command`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ command: cmd })
-            }).catch(() => { });
+            // Notify server via WebSocket
+            wsSend({ type: 'command', command: cmd });
         }
 
         function stopRecord() {
@@ -229,27 +306,13 @@
             document.getElementById('statusDot').className = 'status-dot';
             document.getElementById('statusText').textContent = 'READY';
 
-            fetch(`${API}/api/command`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ command: 'stop' })
-            }).catch(() => { });
+            wsSend({ type: 'command', command: 'stop' });
         }
 
         // ============================================
-        //  POLL SERVER FOR COMMANDS (from dashboard)
+        //  INIT — Connect WebSocket
         // ============================================
-        setInterval(async () => {
-            try {
-                const res = await fetch(`${API}/api/command`);
-                const data = await res.json();
-                if (data.command === 'record_track' || data.command === 'record_pit') {
-                    startRecord(data.command);
-                } else if (data.command === 'stop') {
-                    stopRecord();
-                }
-            } catch (e) { }
-        }, 500);
+        connectWS();
     </script>
 </body>
 
