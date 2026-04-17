@@ -52,9 +52,9 @@ def clean_overlap(points):
     return points
 
 def interpolate_centerline(points, interval=1.0):
-    """Interpolate centerline points to have one point every `interval` meters."""
+    """Interpolate points to have one point every `interval` meters."""
     if len(points) < 2:
-        return points
+        return points, 0.0
     
     result = []
     total_dist = 0.0
@@ -102,8 +102,8 @@ def interpolate_centerline(points, interval=1.0):
         total_dist = seg_end_dist
     
     # Add last point if not already added
-    last_original = points[-1]
-    if result[-1]["dist"] < last_original["dist"] - 0.5:
+    if result[-1]["dist"] < total_dist - 0.5:
+        last_original = points[-1]
         result.append({
             "x": round(last_original["x"], 2),
             "y": round(last_original["y"], 2),
@@ -127,10 +127,8 @@ def main():
     # Auto-clean overlaps before interpolating
     trackdef["centerline"] = clean_overlap(trackdef["centerline"])
     
-    # Interpolate
+    # Interpolate centerline
     smoothed, new_total = interpolate_centerline(trackdef["centerline"], interval=1.0)
-    
-    # Update trackdef
     trackdef["centerline"] = smoothed
     trackdef["total_length_m"] = new_total
     
@@ -141,6 +139,18 @@ def main():
         svg_parts.append(f"{prefix} {pt['x']:.2f} {pt['y']:.2f}")
     svg_parts.append("Z")
     trackdef["svg_path"] = " ".join(svg_parts)
+
+    # Interpolate pit_lane if exists
+    if "pit_lane" in trackdef and trackdef["pit_lane"]:
+        smoothed_pit, pit_len = interpolate_centerline(trackdef["pit_lane"], interval=1.0)
+        trackdef["pit_lane"] = smoothed_pit
+        
+        # Regenerate pit SVG path
+        pit_svg_parts = []
+        for i, pt in enumerate(smoothed_pit):
+            prefix = "M" if i == 0 else "L"
+            pit_svg_parts.append(f"{prefix} {pt['x']:.2f} {pt['y']:.2f}")
+        trackdef["pit_svg_path"] = " ".join(pit_svg_parts)
     
     # Modifikasi agar point JSON dirender sejajar dalam 1 baris
     import re
@@ -159,6 +169,8 @@ def main():
     
     print(f"Original:  {original_count} points, {original_length}m")
     print(f"Smoothed:  {len(smoothed)} points, {new_total}m")
+    if "pit_lane" in trackdef:
+        print(f"Pit Lane:  {len(trackdef['pit_lane'])} points")
     print(f"Interval:  ~1m per point")
     print(f"Output:    {output_file}")
 
