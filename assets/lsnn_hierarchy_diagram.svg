@@ -2,65 +2,65 @@
     <!-- SUBGRAPH BOXES -->
     <!-- Box 1: I. EXECUTIVE BOARD -->
     <g>
-        <rect x="325" y="15" width="300" height="135" rx="8" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1.5" />
-        <text x="475" y="36" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="10px" font-weight="800" fill="#6b21a8" letter-spacing="1.5px">I. EXECUTIVE BOARD</text>
+        <rect x="325" y="15" width="300" height="135" rx="8" fill="#1e152a" stroke="#581c87" stroke-width="1.5" />
+        <text x="475" y="36" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="10px" font-weight="800" fill="#d8b4fe" letter-spacing="1.5px">I. EXECUTIVE BOARD</text>
         
         <!-- CEO Card -->
         <g>
-            <rect x="355" y="52" width="240" height="36" rx="5" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
+            <rect x="355" y="52" width="240" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="355" y="52" width="240" height="3" rx="0" fill="#a855f7" />
-            <text x="475" y="74" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#0f172a" letter-spacing="0.5px">CHIEF EXECUTIVE OFFICER</text>
+            <text x="475" y="74" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.5px">CHIEF EXECUTIVE OFFICER</text>
         </g>
         <!-- COO Card -->
         <g>
-            <rect x="355" y="98" width="240" height="36" rx="5" fill="#ffffff" stroke="#e2e8f0" stroke-width="1" />
+            <rect x="355" y="98" width="240" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="355" y="98" width="240" height="3" rx="0" fill="#a855f7" />
-            <text x="475" y="120" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#0f172a" letter-spacing="0.5px">CHIEF OPERATING OFFICER</text>
+            <text x="475" y="120" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.5px">CHIEF OPERATING OFFICER</text>
         </g>
     </g>
 
     <!-- Box 2: II. CREATIVE MANAGEMENT -->
     <g>
-        <rect x="25" y="200" width="300" height="135" rx="8" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="1.5" />
-        <text x="175" y="221" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="10px" font-weight="800" fill="#5b21b6" letter-spacing="1.5px">II. CREATIVE MANAGEMENT</text>
+        <rect x="25" y="200" width="300" height="135" rx="8" fill="#121026" stroke="#3b0764" stroke-width="1.5" />
+        <text x="175" y="221" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="10px" font-weight="800" fill="#c084fc" letter-spacing="1.5px">II. CREATIVE MANAGEMENT</text>
         
         <!-- EP Card -->
         <g>
-            <rect x="55" y="237" width="240" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <rect x="55" y="237" width="240" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="55" y="237" width="240" height="3" rx="0" fill="#8b5cf6" />
-            <text x="175" y="259" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#0f172a" letter-spacing="0.5px">EXECUTIVE PRODUCER</text>
+            <text x="175" y="259" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.5px">EXECUTIVE PRODUCER</text>
         </g>
         <!-- AEP Card -->
         <g>
-            <rect x="55" y="283" width="240" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <rect x="55" y="283" width="240" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="55" y="283" width="240" height="3" rx="0" fill="#8b5cf6" />
-            <text x="175" y="305" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#0f172a" letter-spacing="0.5px">ASSOCIATE EXECUTIVE PRODUCER</text>
+            <text x="175" y="305" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.5px">ASSOCIATE EXECUTIVE PRODUCER</text>
         </g>
     </g>
 
     <!-- Box 3: III. DEPARTMENT MANAGEMENT -->
     <g>
-        <rect x="600" y="200" width="325" height="150" rx="8" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1.5" />
-        <text x="762.5" y="221" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="10px" font-weight="800" fill="#0369a1" letter-spacing="1.5px">III. DEPARTMENT MANAGEMENT</text>
+        <rect x="600" y="200" width="325" height="150" rx="8" fill="#081524" stroke="#075985" stroke-width="1.5" />
+        <text x="762.5" y="221" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="10px" font-weight="800" fill="#7dd3fc" letter-spacing="1.5px">III. DEPARTMENT MANAGEMENT</text>
         
         <!-- Managers (HR, PR, IT) -->
         <g>
-            <rect x="612" y="237" width="90" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <rect x="612" y="237" width="90" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="612" y="237" width="90" height="3" fill="#ec4899" />
-            <text x="657" y="259" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="8.5px" font-weight="bold" fill="#0f172a" letter-spacing="0.3px">HR MANAGER</text>
+            <text x="657" y="259" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="8.5px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.3px">HR MANAGER</text>
         </g>
         <g>
-            <rect x="717" y="237" width="90" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <rect x="717" y="237" width="90" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="717" y="237" width="90" height="3" fill="#f59e0b" />
-            <text x="762" y="253" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="7.5px" font-weight="bold" fill="#0f172a" letter-spacing="0.2px">
+            <text x="762" y="253" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="7.5px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.2px">
                 <tspan x="762" dy="0">PR &amp; MARKETING</tspan>
                 <tspan x="762" dy="10">MANAGER</tspan>
             </text>
         </g>
         <g>
-            <rect x="822" y="237" width="90" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <rect x="822" y="237" width="90" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="822" y="237" width="90" height="3" fill="#10b981" />
-            <text x="867" y="253" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="7.5px" font-weight="bold" fill="#0f172a" letter-spacing="0.2px">
+            <text x="867" y="253" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="7.5px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.2px">
                 <tspan x="867" dy="0">IT &amp; DEVELOPMENT</tspan>
                 <tspan x="867" dy="10">MANAGER</tspan>
             </text>
@@ -68,25 +68,25 @@
 
         <!-- Assistants (Asst HR, Asst PR, Asst IT) -->
         <g>
-            <rect x="612" y="295" width="90" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <rect x="612" y="295" width="90" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="612" y="295" width="90" height="3" fill="#f472b6" />
-            <text x="657" y="311" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="7.5px" font-weight="bold" fill="#0f172a" letter-spacing="0.3px">
+            <text x="657" y="311" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="7.5px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.3px">
                 <tspan x="657" dy="0">ASSISTANT</tspan>
                 <tspan x="657" dy="10">HR MANAGER</tspan>
             </text>
         </g>
         <g>
-            <rect x="717" y="295" width="90" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <rect x="717" y="295" width="90" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="717" y="295" width="90" height="3" fill="#fbbf24" />
-            <text x="762" y="311" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="7.5px" font-weight="bold" fill="#0f172a" letter-spacing="0.2px">
+            <text x="762" y="311" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="7.5px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.2px">
                 <tspan x="762" dy="0">ASSISTANT</tspan>
                 <tspan x="762" dy="10">PR &amp; MARKETING</tspan>
             </text>
         </g>
         <g>
-            <rect x="822" y="295" width="90" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <rect x="822" y="295" width="90" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="822" y="295" width="90" height="3" fill="#34d399" />
-            <text x="867" y="311" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="7px" font-weight="bold" fill="#0f172a" letter-spacing="0.2px">
+            <text x="867" y="311" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="7px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.2px">
                 <tspan x="867" dy="0">ASSISTANT</tspan>
                 <tspan x="867" dy="10">IT &amp; DEVELOPMENT</tspan>
             </text>
@@ -95,97 +95,97 @@
 
     <!-- Box 4: IV. CONTENT LEADS -->
     <g>
-        <rect x="25" y="380" width="300" height="170" rx="8" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1.5" />
-        <text x="175" y="401" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="10px" font-weight="800" fill="#6b21a8" letter-spacing="1.5px">IV. CONTENT LEADS</text>
+        <rect x="25" y="380" width="300" height="170" rx="8" fill="#1e152a" stroke="#581c87" stroke-width="1.5" />
+        <text x="175" y="401" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="10px" font-weight="800" fill="#d8b4fe" letter-spacing="1.5px">IV. CONTENT LEADS</text>
         
         <!-- Producer 1: News Room -->
         <g>
-            <rect x="55" y="415" width="240" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <rect x="55" y="415" width="240" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="55" y="415" width="240" height="3" rx="0" fill="#a855f7" />
-            <text x="175" y="437" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#0f172a" letter-spacing="0.5px">PRODUCER OF NEWS ROOM</text>
+            <text x="175" y="437" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.5px">PRODUCER OF NEWS ROOM</text>
         </g>
         <!-- Producer 2: Radio & Pod -->
         <g>
-            <rect x="55" y="460" width="240" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <rect x="55" y="460" width="240" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="55" y="460" width="240" height="3" rx="0" fill="#a855f7" />
-            <text x="175" y="482" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#0f172a" letter-spacing="0.5px">PRODUCER OF RADIO &amp; PODCAST</text>
+            <text x="175" y="482" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.5px">PRODUCER OF RADIO &amp; PODCAST</text>
         </g>
         <!-- Producer 3: Gameshow & Events -->
         <g>
-            <rect x="55" y="505" width="240" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+            <rect x="55" y="505" width="240" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
             <rect x="55" y="505" width="240" height="3" rx="0" fill="#a855f7" />
-            <text x="175" y="527" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#0f172a" letter-spacing="0.5px">PRODUCER OF GAMESHOW &amp; EVENTS</text>
+            <text x="175" y="527" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.5px">PRODUCER OF GAMESHOW &amp; EVENTS</text>
         </g>
     </g>
 
     <!-- Box 5: V. FIELD STAFF -->
     <g>
-        <rect x="25" y="575" width="900" height="271" rx="8" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
-        <text x="475" y="596" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="10px" font-weight="800" fill="#475569" letter-spacing="1.5px">V. FIELD STAFF</text>
+        <rect x="25" y="575" width="900" height="271" rx="8" fill="#0f172a" stroke="#1e293b" stroke-width="1.5" />
+        <text x="475" y="596" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="10px" font-weight="800" fill="#94a3b8" letter-spacing="1.5px">V. FIELD STAFF</text>
         
         <!-- Level 1: Specialist Staff -->
         <g>
-            <rect x="370" y="615" width="210" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
-            <rect x="370" y="615" width="210" height="3" rx="0" fill="#475569" />
-            <text x="475" y="637" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#0f172a" letter-spacing="0.5px">SPECIALIST STAFF</text>
+            <rect x="370" y="615" width="210" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
+            <rect x="370" y="615" width="210" height="3" rx="0" fill="#94a3b8" />
+            <text x="475" y="637" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.5px">SPECIALIST STAFF</text>
         </g>
 
         <!-- Level 2: Production Staff & Marketing Staff -->
         <g>
-            <rect x="70" y="675" width="210" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
-            <rect x="70" y="675" width="210" height="3" rx="0" fill="#475569" />
-            <text x="175" y="697" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#0f172a" letter-spacing="0.5px">PRODUCTION STAFF</text>
+            <rect x="70" y="675" width="210" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
+            <rect x="70" y="675" width="210" height="3" rx="0" fill="#94a3b8" />
+            <text x="175" y="697" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.5px">PRODUCTION STAFF</text>
         </g>
         <g>
-            <rect x="670" y="675" width="210" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
-            <rect x="670" y="675" width="210" height="3" rx="0" fill="#475569" />
-            <text x="775" y="697" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#0f172a" letter-spacing="0.5px">MARKETING STAFF</text>
+            <rect x="670" y="675" width="210" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
+            <rect x="670" y="675" width="210" height="3" rx="0" fill="#94a3b8" />
+            <text x="775" y="697" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.5px">MARKETING STAFF</text>
         </g>
 
         <!-- Level 3: Junior Staff -->
         <g>
-            <rect x="370" y="735" width="210" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
-            <rect x="370" y="735" width="210" height="3" rx="0" fill="#475569" />
-            <text x="475" y="757" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#0f172a" letter-spacing="0.5px">JUNIOR STAFF</text>
+            <rect x="370" y="735" width="210" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
+            <rect x="370" y="735" width="210" height="3" rx="0" fill="#94a3b8" />
+            <text x="475" y="757" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.5px">JUNIOR STAFF</text>
         </g>
 
         <!-- Level 4: Internship -->
         <g>
-            <rect x="370" y="795" width="210" height="36" rx="5" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
-            <rect x="370" y="795" width="210" height="3" rx="0" fill="#475569" />
-            <text x="475" y="817" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#0f172a" letter-spacing="0.5px">INTERNSHIP</text>
+            <rect x="370" y="795" width="210" height="36" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1" />
+            <rect x="370" y="795" width="210" height="3" rx="0" fill="#94a3b8" />
+            <text x="475" y="817" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="9px" font-weight="bold" fill="#f1f5f9" letter-spacing="0.5px">INTERNSHIP</text>
         </g>
     </g>
 
     <!-- CONNECTOR PATHS (Tree branches) - Rendered last to stay on top of fills -->
     <!-- 1. Executive Board Split to Creative & Department Management -->
     <path d="M 475 150 L 475 180 M 175 180 L 775 180 M 175 180 L 175 200 M 775 180 L 775 200" 
-        stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
+        stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
     
     <!-- 2. Inside Department Management (Box 3) Connectors -->
     <path d="M 662 276 L 662 295 M 775 276 L 775 295 M 888 276 L 888 295" 
-        stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
+        stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
     
     <!-- 3. Creative Management (Box 2) to Content Leads (Box 4) -->
     <path d="M 175 335 L 175 380" 
-        stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
+        stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
     
     <!-- 4. Content Leads (Box 4) directly to Production Staff (Level 2) -->
     <path d="M 175 550 L 175 675" 
-        stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
+        stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
     
     <!-- 5. ASST PR & MKT directly to Marketing Staff (Level 2) -->
     <path d="M 775 331 L 775 675" 
-        stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
+        stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
     
     <!-- 6. Inside Field Staff Box 5 Connectors -->
     <!-- Specialist Staff branching to Production and Marketing Staff -->
     <path d="M 475 651 L 475 663 M 175 663 L 775 663" 
-        stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
+        stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
     <!-- Production & Marketing split merging to Junior Staff -->
     <path d="M 175 711 L 175 723 L 775 723 L 775 711 M 475 723 L 475 735" 
-        stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
+        stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
     <!-- Junior Staff to Internship -->
     <path d="M 475 771 L 475 795" 
-        stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
+        stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5" />
 </svg>
