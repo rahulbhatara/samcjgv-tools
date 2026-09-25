@@ -1,0 +1,63 @@
+window.updateScoreboard([
+  {
+    "name": "Aaron Carnston",
+    "checkpoints": 150,
+    "timeDiff": 0.00,
+    "position": { "x": -650, "y": -1017, "z": 20 }
+  },
+  {
+    "name": "Erza Koume",
+    "checkpoints": 150,
+    "timeDiff": 1.45,
+    "position": { "x": -680, "y": -1020, "z": 20 }
+  },
+  {
+    "name": "James Bianchi",
+    "checkpoints": 149,
+    "timeDiff": 4.22,
+    "position": { "x": -720, "y": -1050, "z": 20 }
+  },
+  {
+    "name": "Harry Carmelo",
+    "checkpoints": 149,
+    "timeDiff": 5.10,
+    "position": { "x": -740, "y": -1060, "z": 20 }
+  },
+  {
+    "name": "Andrew Fernando",
+    "checkpoints": 145,
+    "timeDiff": 12.05,
+    "position": { "x": -790, "y": -1010, "z": 20 }
+  },
+  {
+    "name": "Yamagata Haruko",
+    "checkpoints": 145,
+    "timeDiff": 12.80,
+    "position": { "x": -800, "y": -1000, "z": 20 }
+  },
+  {
+    "name": "Sezoku Kurosaki",
+    "checkpoints": 143,
+    "timeDiff": 18.50,
+    "position": { "x": -750, "y": -940, "z": 20 }
+  },
+  {
+    "name": "Giselle Hennessey",
+    "checkpoints": 140,
+    "timeDiff": 26.33,
+    "position": { "x": -650, "y": -840, "z": 20 }
+  },
+  {
+    "name": "Bo Rose",
+    "checkpoints": 139,
+    "timeDiff": 29.14,
+    "position": { "x": -620, "y": -840, "z": 20 }
+  },
+  {
+    "name": "Livia Deveraux",
+    "checkpoints": 138,
+    "timeDiff": 32.75,
+    "position": { "x": -580, "y": -840, "z": 20 }
+  }
+]);
+window.setLap(10, 20);
