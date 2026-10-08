@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """
-SAMC Track Scraper Server — WebSocket Edition.
+SAMC Track Scraper Server — Unified Port Edition.
 
-Usage: python3 server.py [ws_port] [http_port]
-Default: ws_port=8900, http_port=8899
+Usage: python3 server.py [port]
+Default: port=8899
 
   http://localhost:8899/           → Dashboard
   http://localhost:8899/client     → CEF client (load in game)
-  ws://localhost:8900              → WebSocket (all real-time comms)
+  ws://localhost:8899/ws           → WebSocket (all real-time comms)
+
+Single port mode is fully compatible with Cloudflare Quick Tunnels:
+  cloudflared tunnel --url http://localhost:8899
 """
 
 import asyncio
@@ -16,17 +19,16 @@ import sys
 import os
 import time
 from pathlib import Path
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import threading
 
 try:
     import websockets
+    from websockets.http11 import Response
+    from websockets.datastructures import Headers
 except ImportError:
     print("❌ websockets not installed. Run: pip install websockets")
     sys.exit(1)
 
-WS_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8900
-HTTP_PORT = int(sys.argv[2]) if len(sys.argv) > 2 else 8899
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8899
 SCRIPT_DIR = Path(__file__).parent
 
 # ============================================================
@@ -44,6 +46,8 @@ state = {
         "track_name": "Custom Track",
         "total_laps": 0,
     },
+    "last_cef_raw": None,         # last raw JSON received from CEF
+    "cef_data_count": 0,
 }
 
 MIN_DIST = 2.0  # minimum distance filter
@@ -98,31 +102,85 @@ async def send_full_state(ws):
         "pit_points": state["pit_points"],
         "total_length": state["total_length"],
         "track_info": state["track_info"],
+        "last_cef_raw": state["last_cef_raw"],
+        "cef_data_count": state["cef_data_count"],
         "cef_alive": len(clients["cef"]) > 0,
+        "cef_count": len(clients["cef"]),
     }))
 
 
 # ============================================================
 #  MESSAGE HANDLERS
 # ============================================================
-async def handle_position(ws, data):
-    """CEF sends position data. Server processes, stores, and broadcasts."""
-    x = data.get("x", 0)
-    y = data.get("y", 0)
-    z = data.get("z", 0)
-    rec_type = data.get("recording_type")
+async def handle_cef_data(ws, data):
+    """CEF sends raw data (e.g. scoreboard array) and/or position."""
+    raw = data.get("raw")
+    state["last_cef_raw"] = raw
+    state["cef_data_count"] += 1
+
+    # Extract pos
+    pos = data.get("pos")
+    x, y, z = 0.0, 0.0, 0.0
+    has_pos = False
+
+    if isinstance(pos, dict) and "x" in pos and "y" in pos:
+        try:
+            x = float(pos["x"])
+            y = float(pos["y"])
+            z = float(pos.get("z", 0))
+            has_pos = True
+        except (ValueError, TypeError):
+            pass
+    elif "x" in data and "y" in data:
+        try:
+            x = float(data["x"])
+            y = float(data["y"])
+            z = float(data.get("z", 0))
+            has_pos = True
+        except (ValueError, TypeError):
+            pass
+    elif isinstance(raw, list) and len(raw) > 0 and isinstance(raw[0], dict) and "position" in raw[0]:
+        first_pos = raw[0].get("position", {})
+        if isinstance(first_pos, dict) and "x" in first_pos and "y" in first_pos:
+            try:
+                x = float(first_pos["x"])
+                y = float(first_pos["y"])
+                z = float(first_pos.get("z", 0))
+                has_pos = True
+            except (ValueError, TypeError):
+                pass
+
+    # Always broadcast raw data to dashboard
+    broadcast_payload = {
+        "type": "cef_raw",
+        "data": raw,
+        "count": state["cef_data_count"],
+    }
+    if has_pos:
+        broadcast_payload["x"] = round(x, 2)
+        broadcast_payload["y"] = round(y, 2)
+        broadcast_payload["z"] = round(z, 2)
+
+    await broadcast(broadcast_payload, role="dashboard")
+
+    # Broadcast live position to dashboard for live marker
+    if has_pos:
+        await broadcast({
+            "type": "live_position",
+            "x": x, "y": y, "z": z,
+        }, role="dashboard")
+
+    # If NOT recording or no valid position, do not record points
+    if not state["recording"] or not has_pos:
+        return
 
     point = {"x": x, "y": y}
 
     # Noise filter
     if state["last_point"] and distance_2d(state["last_point"], point) < MIN_DIST:
-        # Still broadcast live position for display
-        await broadcast({
-            "type": "live_position",
-            "x": x, "y": y, "z": z,
-        }, role="dashboard")
         return
 
+    rec_type = data.get("recording_type") or state["recording_type"]
     if rec_type == "track":
         dist = (state["total_length"] + distance_2d(state["last_point"], point)) if state["last_point"] else 0
         state["total_length"] = dist
@@ -148,11 +206,10 @@ async def handle_position(ws, data):
             "count": len(state["pit_points"]),
         }, role="dashboard")
 
-    # Always broadcast live position
-    await broadcast({
-        "type": "live_position",
-        "x": x, "y": y, "z": z,
-    }, role="dashboard")
+
+async def handle_position(ws, data):
+    """Legacy/simulation position handler — delegates to handle_cef_data."""
+    await handle_cef_data(ws, data)
 
 
 async def handle_command(ws, data):
@@ -306,14 +363,20 @@ async def ws_handler(ws):
                 
                 # Notify dashboards about CEF status
                 if role == "cef":
+                    cef_count = len(clients["cef"])
+                    remote_ip = remote[0] if isinstance(remote, tuple) else str(remote)
                     await broadcast({
                         "type": "cef_status",
                         "alive": True,
+                        "count": cef_count,
+                        "ip": remote_ip,
                     }, role="dashboard")
                 continue
 
             # Route messages
-            if msg_type == "position":
+            if msg_type == "cef_data":
+                await handle_cef_data(ws, msg)
+            elif msg_type == "position":
                 await handle_position(ws, msg)
             elif msg_type == "command":
                 await handle_command(ws, msg)
@@ -340,48 +403,63 @@ async def ws_handler(ws):
         
         # Notify about CEF disconnect
         if role == "cef":
+            cef_count = len(clients["cef"])
             await broadcast({
                 "type": "cef_status",
-                "alive": len(clients["cef"]) > 0,
+                "alive": cef_count > 0,
+                "count": cef_count,
             }, role="dashboard")
 
 
 # ============================================================
-#  HTTP SERVER (serves static HTML files only)
+#  HTTP & WEBSOCKET ROUTING (Single Port)
 # ============================================================
-class StaticHandler(BaseHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass  # quiet
+def process_request(connection, request):
+    """Handle HTTP requests and WebSocket upgrades on the exact same port."""
+    # CORS preflight
+    if request.method == "OPTIONS":
+        cors_headers = Headers([
+            ("Access-Control-Allow-Origin", "*"),
+            ("Access-Control-Allow-Methods", "GET, POST, OPTIONS"),
+            ("Access-Control-Allow-Headers", "*"),
+            ("Connection", "close"),
+        ])
+        return Response(204, "No Content", cors_headers, b"")
 
-    def do_GET(self):
-        path = self.path.split("?")[0]
+    # If it is a WebSocket upgrade request, return None to proceed with WS handshake
+    if request.headers.get("Upgrade", "").lower() == "websocket":
+        return None
 
-        if path == "/" or path == "/dashboard":
-            self._serve("dashboard.html")
-        elif path == "/client":
-            self._serve("client.html")
-        else:
-            self.send_response(404)
-            self.end_headers()
+    # Handle static HTTP files
+    path = request.path.split("?")[0]
+    headers = Headers([
+        ("Content-Type", "text/html; charset=utf-8"),
+        ("Access-Control-Allow-Origin", "*"),
+        ("Connection", "close"),
+    ])
 
-    def _serve(self, filename):
-        try:
-            content = (SCRIPT_DIR / filename).read_bytes()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(content)
-        except FileNotFoundError:
-            self.send_response(404)
-            self.end_headers()
-            self.wfile.write(b"Not found")
+    if path in ("/", "/dashboard"):
+        target = SCRIPT_DIR / "dashboard.html"
+    elif path == "/client":
+        target = SCRIPT_DIR / "client.html"
+    else:
+        err_headers = Headers([
+            ("Content-Type", "text/plain; charset=utf-8"),
+            ("Access-Control-Allow-Origin", "*"),
+            ("Connection", "close"),
+        ])
+        return Response(404, "Not Found", err_headers, b"Not found")
 
-
-def run_http_server():
-    """Run the HTTP server in a separate thread."""
-    server = HTTPServer(("0.0.0.0", HTTP_PORT), StaticHandler)
-    server.serve_forever()
+    try:
+        content = target.read_bytes()
+        return Response(200, "OK", headers, content)
+    except FileNotFoundError:
+        err_headers = Headers([
+            ("Content-Type", "text/plain; charset=utf-8"),
+            ("Access-Control-Allow-Origin", "*"),
+            ("Connection", "close"),
+        ])
+        return Response(404, "Not Found", err_headers, b"File not found")
 
 
 # ============================================================
@@ -390,26 +468,20 @@ def run_http_server():
 async def main():
     print(f"""
 ╔══════════════════════════════════════════════════╗
-║       🏁 SAMC Track Scraper — WebSocket Ed.     ║
+║       🏁 SAMC Track Scraper — Unified Port       ║
 ╠══════════════════════════════════════════════════╣
-║  Dashboard : http://localhost:{HTTP_PORT}/            ║
-║  CEF Client: http://localhost:{HTTP_PORT}/client       ║
-║  WebSocket : ws://localhost:{WS_PORT}                 ║
+║  Dashboard : http://localhost:{PORT}/             ║
+║  CEF Client: http://localhost:{PORT}/client        ║
+║  WebSocket : ws://localhost:{PORT}/ws             ║
 ╠══════════════════════════════════════════════════╣
-║  ✅ Data persists on server                      ║
-║  ✅ Export available anytime after recording      ║
+║  ✅ Single Port Mode (Port {PORT})                ║
+║  ✅ Cloudflare Quick Tunnel Compatible            ║
 ║  ✅ Real-time sync via WebSocket                 ║
 ╚══════════════════════════════════════════════════╝
     """)
 
-    # Start HTTP server in background thread
-    http_thread = threading.Thread(target=run_http_server, daemon=True)
-    http_thread.start()
-    print(f"[HTTP] Listening on port {HTTP_PORT}")
-
-    # Start WebSocket server
-    async with websockets.serve(ws_handler, "0.0.0.0", WS_PORT):
-        print(f"[WS]   Listening on port {WS_PORT}")
+    async with websockets.serve(ws_handler, "0.0.0.0", PORT, process_request=process_request):
+        print(f"[Server] Unified HTTP & WebSocket server listening on port {PORT}")
         await asyncio.Future()  # run forever
 
 

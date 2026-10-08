@@ -45,14 +45,79 @@
         .badge-rec { background: rgba(255,50,50,0.2); color: #ff4444; border: 1px solid #ff4444; animation: pulse 1s infinite; }
         .badge-ready { background: rgba(0,184,255,0.15); color: #00b8ff; border: 1px solid rgba(0,184,255,0.3); }
 
-        .header-right { display: flex; align-items: center; gap: 16px; }
-        .cef-status { font-size: 10px; color: #555; display: flex; align-items: center; gap: 6px; }
-        .cef-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; }
-        .cef-dot.online { background: #00ff9f; box-shadow: 0 0 6px #00ff9f; }
+        .header-right { display: flex; align-items: center; gap: 14px; }
         .ws-status { font-size: 10px; display: flex; align-items: center; gap: 6px; }
         .ws-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; }
         .ws-dot.connected { background: #00b8ff; box-shadow: 0 0 6px #00b8ff; }
         .ws-dot.connecting { background: #ffaa00; box-shadow: 0 0 6px #ffaa00; animation: pulse 1s infinite; }
+
+        .cef-badge {
+            display: flex; align-items: center; gap: 8px;
+            padding: 5px 14px; border-radius: 20px;
+            font-size: 10px; font-weight: 700; font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px; transition: all 0.3s ease; user-select: none;
+        }
+        .cef-badge.waiting {
+            background: rgba(255, 170, 0, 0.08);
+            border: 1px solid rgba(255, 170, 0, 0.3);
+            color: #ffaa00;
+        }
+        .cef-badge.online {
+            background: rgba(0, 255, 159, 0.15);
+            border: 1px solid #00ff9f;
+            color: #00ff9f;
+            box-shadow: 0 0 14px rgba(0, 255, 159, 0.35);
+        }
+        .cef-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #ffaa00; display: inline-block;
+        }
+        .cef-badge.online .cef-dot {
+            background: #00ff9f;
+            box-shadow: 0 0 8px #00ff9f;
+            animation: pulse-dot 1.2s infinite;
+        }
+        @keyframes pulse-dot {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .client-status-card {
+            border-radius: 10px; padding: 12px;
+            transition: all 0.3s ease;
+        }
+        .client-status-card.waiting {
+            background: rgba(30, 35, 50, 0.5);
+            border: 1px solid rgba(255, 170, 0, 0.25);
+            border-left: 4px solid #ffaa00;
+        }
+        .client-status-card.online {
+            background: rgba(0, 255, 159, 0.06);
+            border: 1px solid rgba(0, 255, 159, 0.4);
+            border-left: 4px solid #00ff9f;
+            box-shadow: 0 0 16px rgba(0, 255, 159, 0.12);
+        }
+        .client-icon-box {
+            width: 32px; height: 32px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; background: rgba(255, 255, 255, 0.05);
+            transition: all 0.3s;
+        }
+        .client-status-card.online .client-icon-box {
+            background: rgba(0, 255, 159, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 159, 0.3);
+        }
+        .badge-waiting {
+            background: rgba(255, 170, 0, 0.15); color: #ffaa00;
+            border: 1px solid rgba(255, 170, 0, 0.35);
+        }
+        .badge-online {
+            background: rgba(0, 255, 159, 0.2); color: #00ff9f;
+            border: 1px solid #00ff9f;
+            box-shadow: 0 0 8px rgba(0, 255, 159, 0.3);
+            animation: pulse-dot 1.5s infinite;
+        }
 
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 
@@ -160,15 +225,28 @@
                 <div class="ws-dot" id="wsDot"></div>
                 <span id="wsText" style="color:#555">WS: connecting</span>
             </div>
-            <div class="cef-status">
-                <div class="cef-dot" id="cefDot"></div>
-                <span id="cefText">CEF: waiting</span>
+            <div class="cef-badge waiting" id="cefBadge">
+                <span class="cef-dot" id="cefDot"></span>
+                <span id="cefText">CLIENT: WAITING</span>
             </div>
         </div>
     </div>
 
     <div class="main">
         <div class="sidebar">
+            <div class="panel client-status-card waiting" id="clientCard">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="client-icon-box" id="clientIconBox">🎮</div>
+                        <div>
+                            <div style="font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;" id="clientCardTitle">NO CLIENT DETECTED</div>
+                            <div style="font-size: 8px; color: #888; margin-top: 2px;" id="clientCardSubtitle">Load <code>/client</code> in GTA V CEF</div>
+                        </div>
+                    </div>
+                    <span class="badge badge-waiting" id="clientCardBadge">OFFLINE</span>
+                </div>
+            </div>
+
             <div class="panel">
                 <div class="panel-title">Track Info</div>
                 <div class="input-group"><label>Track ID</label><input type="text" id="trackId" placeholder="e.g. zancudo_68" oninput="syncTrackInfo()"></div>
@@ -194,6 +272,27 @@
                     <div class="stat"><div class="stat-value" id="statPit">0</div><div class="stat-label">Pit Pts</div></div>
                     <div class="stat"><div class="stat-value" id="statPos">—</div><div class="stat-label">Live XY</div></div>
                 </div>
+            </div>
+
+            <div class="panel" id="rawJsonPanel">
+                <div class="panel-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span>Raw CEF Data</span>
+                        <span id="rawClientPill" style="font-size: 7px; padding: 1px 5px; border-radius: 10px; background: rgba(255,170,0,0.15); color: #ffaa00; border: 1px solid rgba(255,170,0,0.3);">OFFLINE</span>
+                    </div>
+                    <span id="rawUpdateBadge" style="font-size: 8px; color: #666;">Waiting...</span>
+                </div>
+                <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+                    <button class="btn" id="btnPauseRaw" style="padding: 5px 6px; font-size: 8px; margin-bottom: 0; background: #334155; color: #fff;" onclick="togglePauseRaw()">⏸ PAUSE</button>
+                    <button class="btn" id="btnExpandRaw" style="padding: 5px 6px; font-size: 8px; margin-bottom: 0; background: #334155; color: #fff;" onclick="toggleExpandRaw()">🔍 EXPAND</button>
+                    <button class="btn" style="padding: 5px 6px; font-size: 8px; margin-bottom: 0; background: #334155; color: #fff;" onclick="copyRawJson()">📋 COPY</button>
+                    <button class="btn btn-clear" style="padding: 5px 6px; font-size: 8px; margin-bottom: 0;" onclick="clearRawView()">🗑 CLEAR</button>
+                </div>
+                <div style="font-size: 9px; color: #888; margin-bottom: 6px; display: flex; justify-content: space-between;">
+                    <span>Entries: <b id="rawItemCount" style="color:#00ff9f">0</b></span>
+                    <span>Packets: <b id="rawPacketCount" style="color:#00b8ff">0</b></span>
+                </div>
+                <pre id="rawJsonView" style="max-height: 180px; overflow-y: auto; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 8px; font-family: monospace; font-size: 9px; color: #00ff9f; white-space: pre-wrap; word-break: break-all; margin: 0;">Waiting for CEF client data...</pre>
             </div>
 
             <div class="panel">
@@ -231,8 +330,8 @@
     //   Z = altitude    (up/down)       ← stored but NOT used for 2D
     // ============================================
 
-    const WS_PORT = location.port === '8899' ? 8900 : (parseInt(location.port) + 1);
-    const WS_URL = `ws://${location.hostname}:${WS_PORT}`;
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const WS_URL = `${protocol}//${location.host}/ws`;
     const canvas = document.getElementById('trackCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -243,6 +342,12 @@
     let recording = false;
     let recordingType = null;
     let lastLivePoint = null;
+
+    // Raw CEF inspector state
+    let isRawPaused = false;
+    let isRawExpanded = false;
+    let rawPackets = 0;
+    let lastRawData = null;
 
     // ============================================
     //  WEBSOCKET CONNECTION
@@ -335,11 +440,31 @@
                 }
 
                 // Update UI
+                if (msg.last_cef_raw) {
+                    lastRawData = msg.last_cef_raw;
+                    displayRawData(msg.last_cef_raw);
+                }
+                if (msg.cef_data_count) {
+                    rawPackets = msg.cef_data_count;
+                    document.getElementById('rawPacketCount').textContent = rawPackets;
+                }
                 updateStats();
                 updateButtons();
-                updateCefStatus(msg.cef_alive);
+                updateCefStatus(msg.cef_alive, msg.cef_count || 1);
                 drawTrack();
                 log(`State synced — ${trackPoints.length} track pts, ${pitPoints.length} pit pts`, 'ok');
+                break;
+
+            case 'cef_raw':
+                if (!lastCefAlive) {
+                    updateCefStatus(true, 1);
+                }
+                rawPackets = msg.count || (rawPackets + 1);
+                document.getElementById('rawPacketCount').textContent = rawPackets;
+                lastRawData = msg.data;
+                if (!isRawPaused) {
+                    displayRawData(msg.data);
+                }
                 break;
 
             case 'track_point':
@@ -359,6 +484,7 @@
             case 'live_position':
                 lastLivePoint = { x: msg.x, y: msg.y };
                 document.getElementById('statPos').textContent = `${msg.x.toFixed(0)},${msg.y.toFixed(0)}`;
+                drawTrack();
                 break;
 
             case 'state_change':
@@ -397,7 +523,7 @@
                 break;
 
             case 'cef_status':
-                updateCefStatus(msg.alive);
+                updateCefStatus(msg.alive, msg.count, msg.ip);
                 break;
 
             case 'export_trackdef':
@@ -463,11 +589,146 @@
         document.getElementById('btnSvg').disabled = !hasData;
     }
 
-    function updateCefStatus(alive) {
-        const dot = document.getElementById('cefDot');
+    let lastCefAlive = false;
+
+    function updateCefStatus(alive, count = 1, ip = null) {
+        const badge = document.getElementById('cefBadge');
         const text = document.getElementById('cefText');
-        dot.className = alive ? 'cef-dot online' : 'cef-dot';
-        text.textContent = alive ? 'CEF: connected' : 'CEF: waiting';
+        const card = document.getElementById('clientCard');
+        const cardTitle = document.getElementById('clientCardTitle');
+        const cardSub = document.getElementById('clientCardSubtitle');
+        const cardBadge = document.getElementById('clientCardBadge');
+        const rawPill = document.getElementById('rawClientPill');
+
+        if (alive) {
+            if (badge) {
+                badge.className = 'cef-badge online';
+                text.textContent = count > 1 ? `CLIENT CONNECTED (${count})` : `CLIENT CONNECTED`;
+            }
+
+            if (card) {
+                card.className = 'panel client-status-card online';
+                cardTitle.textContent = 'GAME CLIENT CONNECTED';
+                cardTitle.style.color = '#00ff9f';
+                cardSub.innerHTML = ip ? `Active from <code>${ip}</code> • Telemetry Ready` : `In-Game CEF Bridge Active • Telemetry Ready`;
+                cardBadge.className = 'badge badge-online';
+                cardBadge.textContent = 'ONLINE';
+            }
+
+            if (rawPill) {
+                rawPill.textContent = 'ONLINE';
+                rawPill.style.background = 'rgba(0,255,159,0.2)';
+                rawPill.style.color = '#00ff9f';
+                rawPill.style.borderColor = '#00ff9f';
+            }
+
+            if (!lastCefAlive) {
+                log(`🎮 Game Client connected${ip ? ' from ' + ip : ''}! Ready to record.`, 'ok');
+            }
+        } else {
+            if (badge) {
+                badge.className = 'cef-badge waiting';
+                text.textContent = 'CLIENT: WAITING';
+            }
+
+            if (card) {
+                card.className = 'panel client-status-card waiting';
+                cardTitle.textContent = 'NO CLIENT DETECTED';
+                cardTitle.style.color = '';
+                const clientUrl = `${location.protocol}//${location.host}/client`;
+                cardSub.innerHTML = `Load <code>${clientUrl}</code> in game`;
+                cardBadge.className = 'badge badge-waiting';
+                cardBadge.textContent = 'OFFLINE';
+            }
+
+            if (rawPill) {
+                rawPill.textContent = 'OFFLINE';
+                rawPill.style.background = 'rgba(255,170,0,0.15)';
+                rawPill.style.color = '#ffaa00';
+                rawPill.style.borderColor = 'rgba(255,170,0,0.3)';
+            }
+
+            if (lastCefAlive) {
+                log('⚠️ Game Client disconnected.', 'warn');
+            }
+        }
+        lastCefAlive = !!alive;
+    }
+
+    // ============================================
+    //  RAW CEF DATA VIEWER
+    // ============================================
+    function displayRawData(data) {
+        const view = document.getElementById('rawJsonView');
+        const badge = document.getElementById('rawUpdateBadge');
+        const countEl = document.getElementById('rawItemCount');
+        if (!data) return;
+
+        if (Array.isArray(data)) {
+            countEl.textContent = `${data.length} items`;
+        } else if (typeof data === 'object') {
+            countEl.textContent = `${Object.keys(data).length} keys`;
+        } else {
+            countEl.textContent = typeof data;
+        }
+
+        const now = new Date();
+        const timeStr = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0');
+        badge.textContent = `Live: ${timeStr}`;
+        badge.style.color = '#00ff9f';
+
+        try {
+            view.textContent = JSON.stringify(data, null, 2);
+        } catch(e) {
+            view.textContent = String(data);
+        }
+    }
+
+    function togglePauseRaw() {
+        isRawPaused = !isRawPaused;
+        const btn = document.getElementById('btnPauseRaw');
+        const badge = document.getElementById('rawUpdateBadge');
+        if (isRawPaused) {
+            btn.textContent = '▶ RESUME';
+            btn.style.background = '#eab308';
+            btn.style.color = '#000';
+            badge.textContent = 'PAUSED';
+            badge.style.color = '#eab308';
+        } else {
+            btn.textContent = '⏸ PAUSE';
+            btn.style.background = '#334155';
+            btn.style.color = '#fff';
+            if (lastRawData) displayRawData(lastRawData);
+        }
+    }
+
+    function toggleExpandRaw() {
+        isRawExpanded = !isRawExpanded;
+        const view = document.getElementById('rawJsonView');
+        const btn = document.getElementById('btnExpandRaw');
+        if (isRawExpanded) {
+            view.style.maxHeight = '450px';
+            btn.textContent = '🔽 COLLAPSE';
+        } else {
+            view.style.maxHeight = '180px';
+            btn.textContent = '🔍 EXPAND';
+        }
+    }
+
+    function copyRawJson() {
+        const view = document.getElementById('rawJsonView');
+        navigator.clipboard.writeText(view.textContent).then(() => {
+            log('Raw JSON copied to clipboard', 'ok');
+        }).catch(err => {
+            log('Failed to copy JSON', 'err');
+        });
+    }
+
+    function clearRawView() {
+        document.getElementById('rawJsonView').textContent = 'Waiting for CEF client data...';
+        document.getElementById('rawItemCount').textContent = '0';
+        document.getElementById('rawUpdateBadge').textContent = 'Cleared';
+        document.getElementById('rawUpdateBadge').style.color = '#666';
     }
 
     // ============================================
@@ -546,11 +807,21 @@
                             sendCmd('record_pit');
                             setTimeout(() => {
                                 for (let i = 0; i <= 30; i++) {
+                                    const px = cx - rx*0.6 + (i/30)*rx*1.2;
+                                    const py = cy + ry + 15;
+                                    const pz = 25.0;
                                     wsSend({
-                                        type: 'position',
-                                        x: cx - rx*0.6 + (i/30)*rx*1.2,
-                                        y: cy + ry + 15,
-                                        z: 25.0,
+                                        type: 'cef_data',
+                                        raw: [
+                                            {
+                                                name: "Player 1",
+                                                vehicle: "Progen T20",
+                                                position: { x: px, y: py, z: pz },
+                                                speed_kmh: 80.5,
+                                                lap: 1
+                                            }
+                                        ],
+                                        pos: { x: px, y: py, z: pz },
                                         recording_type: 'pit',
                                     });
                                 }
@@ -571,8 +842,17 @@
                 
                 const p = simPoints[idx];
                 wsSend({
-                    type: 'position',
-                    x: p.x, y: p.y, z: p.z,
+                    type: 'cef_data',
+                    raw: [
+                        {
+                            name: "Player 1",
+                            vehicle: "Progen T20",
+                            position: { x: p.x, y: p.y, z: p.z },
+                            speed_kmh: 185.2,
+                            lap: 1
+                        }
+                    ],
+                    pos: { x: p.x, y: p.y, z: p.z },
                     recording_type: p.recording_type,
                 });
                 idx++;
@@ -655,10 +935,12 @@
             const m = toC(pitPoints[Math.floor(pitPoints.length/2)], bb);
             ctx.font = '10px Orbitron,sans-serif'; ctx.fillStyle = '#ff6600'; ctx.textAlign = 'center'; ctx.fillText('PIT', m.x, m.y-8);
         }
-        if (recording && lastLivePoint) {
+        if (lastLivePoint) {
             const lp = toC(lastLivePoint, bb);
-            ctx.beginPath(); ctx.arc(lp.x, lp.y, 5, 0, Math.PI*2);
-            ctx.fillStyle = recordingType === 'track' ? '#ff4444' : '#ffaa00'; ctx.fill();
+            ctx.beginPath(); ctx.arc(lp.x, lp.y, 6, 0, Math.PI*2);
+            ctx.fillStyle = recording ? (recordingType === 'track' ? '#ff4444' : '#ffaa00') : '#00b8ff';
+            ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
         }
     }
 

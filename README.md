@@ -15,14 +15,21 @@ Tool untuk merekam track definition (centerline & pit lane) dari dalam game GTA 
 
 ### Cara Pakai
 ```bash
-# Jalankan server
-python3 track-scraper/server.py
+# Jalankan server via uv
+uv run python track-scraper/server.py
+
+# Atau aktifkan virtual environment terlebih dahulu:
+# source .venv/bin/activate
+# python3 track-scraper/server.py
 
 # Buka dashboard di browser
 # http://localhost:8899/
 
 # Load CEF client di game
 # http://localhost:8899/client
+
+# (Opsional) Menggunakan Cloudflare Quick Tunnel:
+# cloudflared tunnel --url http://localhost:8899
 ```
 
 ### Alur Recording
